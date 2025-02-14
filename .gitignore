@@ -1,0 +1,15 @@
+# Środowisko
+.env
+
+# Dane uwierzytelniające Google
+credentials.json
+
+# Zależności
+node_modules/
+
+# Logi
+*.log
+
+# System
+.DS_Store
+Thumbs.db 
