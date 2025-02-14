@@ -31,8 +31,8 @@
 4. **WAŻNE - Konfiguracja użytkownika Git:**
    ```bash
    # Skonfiguruj swoją tożsamość w Git (użyj tego samego emaila co na GitHub)
-   git config --global user.name "MiroslawMucha"
-   git config --global user.email "budowaumuchy@gmail.com"
+   git config --global user.name "TwojaNazwaUżytkownika"
+   git config --global user.email "twoj.email@gmail.com"
    
    # Sprawdź czy konfiguracja się powiodła
    git config --list
@@ -51,10 +51,13 @@
 6. Przygotuj lokalny projekt:
    ```bash
    # Przejdź do katalogu projektu
-   cd ścieżka/do/bot-raport-dzienny
+   cd ścieżka/do/projektu
 
    # Zainicjuj Git
    git init
+
+   # Jeśli pojawi się błąd z origin już istniejącym:
+   git remote remove origin
 
    # Utwórz .gitignore przed pierwszym commitem
    echo "node_modules/" >> .gitignore
@@ -64,24 +67,60 @@
 
    # Dodaj pliki do repozytorium
    git add .
+   # Nie przejmuj się ostrzeżeniami o CRLF/LF - to normalne w Windows
 
    # Wykonaj pierwszy commit
    git commit -m "init: pierwszy commit"
 
    # Dodaj zdalne repozytorium
-   git remote add origin https://github.com/MiroslawMucha/bot-raport-dzienny.git
+   git remote add origin https://github.com/TwojaNazwaUżytkownika/nazwa-repo.git
 
-   # Ustaw główną gałąź
+   # WAŻNE: Zmień nazwę głównej gałęzi na main
    git branch -M main
 
    # Wypchnij zmiany na GitHub
    git push -u origin main
    ```
 
-7. Sprawdź czy wszystko się przeniosło:
-   - Otwórz GitHub w przeglądarce
-   - Sprawdź czy pliki się pojawiły
-   - Upewnij się, że wrażliwe dane nie zostały wysłane
+7. Rozwiązywanie typowych problemów:
+   - Jeśli pojawi się błąd "remote origin already exists":
+     ```bash
+     git remote remove origin
+     git remote add origin https://github.com/TwojaNazwaUżytkownika/nazwa-repo.git
+     ```
+   
+   - Jeśli pojawi się błąd "src refspec main does not match any":
+     ```bash
+     git branch -M main
+     git push -u origin main
+     ```
+
+   - Jeśli Git prosi o hasło:
+     1. Przejdź do GitHub → Settings → Developer settings → Personal access tokens
+     2. Wygeneruj nowy token (classic)
+     3. Zaznacz uprawnienia: `repo` (wszystkie)
+     4. Użyj tego tokenu jako hasła przy pushowaniu
+
+8. Weryfikacja po wysłaniu:
+   ```bash
+   # Sprawdź jakie pliki zostały wysłane
+   git ls-tree -r main --name-only
+
+   # Sprawdź status lokalnego repozytorium
+   git status
+   ```
+
+9. Sprawdź czy NIE wysłano wrażliwych plików:
+   - `.env`
+   - `credentials.json`
+   - `node_modules/`
+   - pliki z hasłami i tokenami
+
+10. Sprawdź repozytorium na GitHub:
+    - Wejdź na https://github.com/TwojaNazwaUżytkownika/nazwa-repo
+    - Upewnij się, że repo jest prywatne
+    - Sprawdź czy wszystkie pliki się poprawnie przesłały
+    - Zweryfikuj czy nie ma wrażliwych danych
 
 8. Dodaj dokumentację:
    ```bash
@@ -409,3 +448,93 @@ git checkout -b nazwa-brancha commit-hash
 - Twórz tagi dla wersji
 - Backupuj lokalne repozytorium
 - Dokumentuj zmiany w README 
+
+## 11. Szybka instrukcja codzienna
+
+### 11.1. Workflow: Cursor → Git → GitHub
+```bash
+# 1. Przed rozpoczęciem pracy
+git pull origin main              # Pobierz najnowsze zmiany
+git checkout -b feature/nazwa     # Utwórz nową gałąź dla zmian
+
+# 2. Podczas pracy w Cursor
+# Pracuj normalnie, zapisuj zmiany (Ctrl+S)
+
+# 3. Po zakończeniu pracy
+git status                        # Sprawdź zmienione pliki
+git add .                         # Dodaj wszystkie zmiany
+git commit -m "feat: opis zmian"  # Zapisz zmiany
+git push origin feature/nazwa     # Wyślij na GitHub
+
+# 4. Gdy feature jest gotowy
+git checkout main                 # Przełącz na główną gałąź
+git pull origin main             # Pobierz ewentualne zmiany
+git merge feature/nazwa          # Połącz zmiany
+git push origin main            # Wyślij na GitHub
+```
+
+### 11.2. Wdrożenie na serwer Ubuntu
+```bash
+# 1. Połącz się z serwerem
+ssh użytkownik@adres-serwera
+
+# 2. Pierwsze wdrożenie
+cd /var/www/                     # Przejdź do katalogu aplikacji
+git clone [URL-repozytorium]     # Sklonuj repo
+cd bot-raport-dzienny           # Wejdź do katalogu
+npm install                      # Zainstaluj zależności
+cp .env.example .env            # Skopiuj plik konfiguracyjny
+# Edytuj .env i ustaw właściwe wartości
+nano .env
+
+# 3. Aktualizacja na serwerze
+cd /var/www/bot-raport-dzienny  # Przejdź do katalogu
+git pull origin main            # Pobierz zmiany
+npm install                     # Aktualizuj zależności
+pm2 restart bot-raport         # Zrestartuj bota (jeśli używasz PM2)
+
+# 4. Sprawdzenie statusu
+pm2 status                      # Sprawdź czy bot działa
+pm2 logs bot-raport            # Zobacz logi
+```
+
+### 11.3. Przydatne skróty Git
+```bash
+# Sprawdzanie
+git status                      # Stan repozytorium
+git log --oneline              # Historia commitów
+git diff                       # Zobacz zmiany
+
+# Cofanie zmian
+git checkout -- plik           # Cofnij zmiany w pliku
+git reset --hard HEAD          # Cofnij wszystkie zmiany
+git reset --soft HEAD^         # Cofnij ostatni commit
+
+# Branche
+git branch                     # Lista gałęzi
+git checkout -b nazwa          # Nowa gałąź
+git branch -d nazwa           # Usuń gałąź
+
+# Synchronizacja
+git fetch                      # Pobierz info o zmianach
+git pull                       # Pobierz zmiany
+git push                       # Wyślij zmiany
+```
+
+### 11.4. Rozwiązywanie problemów
+```bash
+# Konflikt podczas merge
+git status                     # Zobacz konfliktujące pliki
+# Edytuj pliki i rozwiąż konflikty
+git add .                      # Dodaj rozwiązane pliki
+git commit -m "merge: fix"     # Zatwierdź rozwiązanie
+
+# Błędy push/pull
+git fetch origin              # Odśwież stan zdalny
+git reset --hard origin/main  # Synchronizuj z origin
+git clean -fd                # Usuń nieśledzone pliki
+
+# Problemy z autoryzacją
+git config --list            # Sprawdź konfigurację
+# Sprawdź/odnów token GitHub
+``` 
