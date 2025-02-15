@@ -15,17 +15,29 @@ class GoogleSheetsService {
             scopes: ['https://www.googleapis.com/auth/spreadsheets']
         });
         this.sheetsApi = null;
+        this.init(); // Inicjalizuj API od razu przy tworzeniu instancji
     }
 
     // Inicjalizacja połączenia z API
     async init() {
-        const authClient = await this.auth.getClient();
-        this.sheetsApi = google.sheets({ version: 'v4', auth: authClient });
+        try {
+            const authClient = await this.auth.getClient();
+            this.sheetsApi = google.sheets({ version: 'v4', auth: authClient });
+            console.log('Google Sheets API zainicjalizowane pomyślnie');
+        } catch (error) {
+            console.error('Błąd inicjalizacji Google Sheets API:', error);
+            throw error;
+        }
     }
 
     // Dodawanie nowego raportu do arkusza
     async dodajRaport(raportData) {
         try {
+            // Upewnij się, że API jest zainicjalizowane
+            if (!this.sheetsApi) {
+                await this.init();
+            }
+
             // Sprawdź wymagane pola
             if (!this.validateRaportData(raportData)) {
                 throw new Error('Brakuje wymaganych danych w raporcie!');
@@ -46,7 +58,7 @@ class GoogleSheetsService {
             ]];
 
             // Zapisz do arkusza
-            await this.sheetsApi.spreadsheets.values.append({
+            const response = await this.sheetsApi.spreadsheets.values.append({
                 spreadsheetId: process.env.GOOGLE_SHEET_ID,
                 range: SHEET_RANGE,
                 valueInputOption: 'USER_ENTERED',
@@ -55,6 +67,7 @@ class GoogleSheetsService {
                 }
             });
 
+            console.log('Raport zapisany pomyślnie:', response.data);
             return true;
         } catch (error) {
             console.error('Błąd podczas zapisywania raportu:', error);
