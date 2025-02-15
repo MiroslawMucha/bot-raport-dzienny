@@ -61,6 +61,8 @@ client.on('interactionCreate', async interaction => {
         } 
         else if (interaction.type === InteractionType.MessageComponent) {
             const userData = raportStore.getReport(interaction.user.id);
+            console.log('Dane użytkownika:', userData);
+
             if (!userData) {
                 await interaction.reply({
                     content: 'Sesja wygasła. Użyj komendy /raport ponownie.',
@@ -89,12 +91,13 @@ client.on('interactionCreate', async interaction => {
             }
 
             if (Object.keys(updateData).length > 0) {
-                raportStore.updateReport(interaction.user.id, updateData);
+                const updatedData = raportStore.updateReport(interaction.user.id, updateData);
+                console.log('Zaktualizowane dane:', updatedData);
                 
                 try {
                     await interaction.deferUpdate();
                     await interaction.editReply({
-                        content: 'Zapisano wybór! Kontynuuj wypełnianie formularza.',
+                        content: `Zapisano wybór: ${JSON.stringify(updateData)}`,
                         components: interaction.message.components
                     });
                 } catch (error) {
