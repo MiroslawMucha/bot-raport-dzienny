@@ -82,9 +82,11 @@ client.on('interactionCreate', async interaction => {
             }
             else if (customId === 'osoby_pracujace') {
                 updateData.osobyPracujace = interaction.values;
+                console.log('Wybrane osoby:', updateData.osobyPracujace);
             }
             else if (customId === 'kierowca') {
                 updateData.kierowca = interaction.values[0];
+                console.log('Wybrany kierowca:', updateData.kierowca);
             }
             else if (customId.startsWith('dieta_')) {
                 updateData.dieta = customId === 'dieta_tak';

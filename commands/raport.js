@@ -54,9 +54,8 @@ module.exports = {
                         value: pojazd
                     })),
                     ...Array(5 - POJAZDY.length).fill(0).map((_, i) => ({
-                        label: `Pojazd ${POJAZDY.length + i + 1}`,
-                        value: `placeholder_${i}`,
-                        default: false
+                        label: `Pojazd ${i + 1}`,
+                        value: `Pojazd ${i + 1}`
                     }))
                 ]
             );
@@ -68,18 +67,22 @@ module.exports = {
                 .filter(member => !member.user.bot)
                 .map(member => ({
                     label: member.displayName,
-                    value: member.id
+                    value: member.displayName
                 }));
 
-            // Jeśli jest mniej niż 5 opcji, dodaj placeholder'y
-            while (options.length < 5) {
-                options.push({
-                    label: `Pracownik ${options.length + 1}`,
-                    value: `placeholder_${options.length + 1}`,
-                    default: false
-                });
+            // Dodaj placeholdery tylko jeśli nie ma wystarczającej liczby członków
+            if (options.length < 5) {
+                console.log('Za mało członków, dodaję placeholdery...');
+                while (options.length < 5) {
+                    options.push({
+                        label: `Pracownik ${options.length + 1}`,
+                        value: `Pracownik ${options.length + 1}`,
+                        default: false
+                    });
+                }
             }
 
+            console.log('Dostępne opcje:', options);
             return options;
         }
 
