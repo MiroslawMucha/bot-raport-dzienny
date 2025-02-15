@@ -53,12 +53,10 @@ client.on('interactionCreate', async interaction => {
             const command = client.commands.get(interaction.commandName);
             if (!command) return;
 
-            // Inicjalizacja danych raportu dla nowej komendy
             if (interaction.commandName === 'raport') {
                 raportStore.initReport(interaction.user.id, interaction.user.username);
             }
 
-            console.log('Wykonywanie komendy:', interaction.commandName);
             await command.execute(interaction);
         } 
         else if (interaction.type === InteractionType.MessageComponent) {
@@ -90,14 +88,35 @@ client.on('interactionCreate', async interaction => {
                 updateData.dieta = customId === 'dieta_tak';
             }
 
-            raportStore.updateReport(interaction.user.id, updateData);
-
-            // Po zebraniu wszystkich danych, pokaż modal z czasem
             if (Object.keys(updateData).length > 0) {
-                await interaction.update({
-                    content: 'Zapisano wybór! Kontynuuj wypełnianie formularza.',
-                    components: interaction.message.components
+                raportStore.updateReport(interaction.user.id, updateData);
+                
+                try {
+                    await interaction.deferUpdate();
+                    await interaction.editReply({
+                        content: 'Zapisano wybór! Kontynuuj wypełnianie formularza.',
+                        components: interaction.message.components
+                    });
+                } catch (error) {
+                    console.error('Błąd aktualizacji interakcji:', error);
+                }
+            }
+
+            // Sprawdź czy formularz jest kompletny
+            const currentData = raportStore.getReport(interaction.user.id);
+            if (currentData.miejscePracy && 
+                currentData.auto && 
+                currentData.osobyPracujace.length > 0 && 
+                currentData.kierowca &&
+                typeof currentData.dieta !== 'undefined') {
+                
+                await interaction.followUp({
+                    content: 'Formularz wypełniony! Zapisuję raport...',
+                    ephemeral: true
                 });
+
+                await wyslijRaport(interaction, currentData);
+                raportStore.deleteReport(interaction.user.id);
             }
         }
     } catch (error) {

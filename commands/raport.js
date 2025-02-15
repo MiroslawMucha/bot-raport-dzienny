@@ -130,58 +130,6 @@ module.exports = {
                 ephemeral: true 
             });
         }
-
-        // Po wybraniu pierwszych opcji, wyślij drugi etap
-        if (raportData.miejscePracy && raportData.auto && raportData.osobyPracujace.length > 0 && raportData.kierowca) {
-            await interaction.followUp({
-                content: 'Krok 2/2 - Wybierz dietę:',
-                components: [dietaButtons],
-                ephemeral: true
-            });
-        }
-
-        // Kolektor do zbierania odpowiedzi
-        const filter = i => i.user.id === interaction.user.id;
-        const collector = interaction.channel.createMessageComponentCollector({
-            filter,
-            time: 300000 // 5 minut na wypełnienie
-        });
-
-        // Obsługa odpowiedzi
-        collector.on('collect', async i => {
-            switch (i.customId) {
-                case 'miejsce_pracy':
-                    raportStore.updateReport(interaction.user.id, { miejscePracy: i.values[0] });
-                    break;
-                case 'pojazd':
-                    raportStore.updateReport(interaction.user.id, { auto: i.values[0] });
-                    break;
-                case 'dieta_tak':
-                    raportStore.updateReport(interaction.user.id, { dieta: true });
-                    break;
-                case 'dieta_nie':
-                    raportStore.updateReport(interaction.user.id, { dieta: false });
-                    break;
-                case 'osoby_pracujace':
-                    raportStore.updateReport(interaction.user.id, { osobyPracujace: i.values.map(value => czlonkowie.find(c => c.value === value).label) });
-                    break;
-                case 'kierowca':
-                    raportStore.updateReport(interaction.user.id, { kierowca: i.values[0] });
-                    break;
-            }
-
-            await i.update({ content: 'Zapisano wybór!' });
-
-            // Sprawdzenie czy wszystkie dane są wypełnione
-            if (raportData.miejscePracy && 
-                raportData.auto && 
-                typeof raportData.dieta !== 'undefined' && 
-                raportData.osobyPracujace.length > 0 && 
-                raportData.kierowca) {
-                collector.stop();
-                await wyslijRaport(interaction, raportData);
-            }
-        });
     }
 };
 
