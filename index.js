@@ -29,7 +29,9 @@ const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('
 const raportStore = require('./utils/raportDataStore');
 
 // Dodaj import funkcji wyslijRaport
-const { wyslijRaport } = require('./commands/raport');
+const { wyslijRaport, formatujRaport } = require('./commands/raport');
+const googleSheets = require('./utils/googleSheets');
+const ChannelManager = require('./utils/channelManager');
 
 for (const file of commandFiles) {
     const filePath = path.join(commandsPath, file);
@@ -213,39 +215,4 @@ process.on('unhandledRejection', (error) => {
 console.log('Attempting to login with token...');
 client.login(process.env.TOKEN).catch(error => {
     console.error('Login error:', error);
-});
-
-// Dodajmy funkcję wyslijRaport
-async function wyslijRaport(interaction, raportData) {
-    // Zapisanie do Google Sheets
-    const zapisano = await googleSheets.dodajRaport(raportData);
-
-    if (zapisano) {
-        // Formatowanie wiadomości raportu
-        const raportMessage = formatujRaport(raportData, false);
-
-        // Wysłanie na główny kanał raportów
-        const kanalRaporty = interaction.guild.channels.cache.get(process.env.KANAL_RAPORTY_ID);
-        await kanalRaporty.send(raportMessage);
-
-        // Pobranie lub utworzenie prywatnego kanału użytkownika
-        const kanalPrywatny = await ChannelManager.getOrCreateUserChannel(
-            interaction.guild,
-            interaction.user
-        );
-
-        // Wysłanie na prywatny kanał użytkownika
-        await kanalPrywatny.send(raportMessage);
-
-        // Wysłanie potwierdzenia
-        await interaction.followUp({
-            content: 'Raport został pomyślnie zapisany i wysłany na odpowiednie kanały!',
-            ephemeral: true
-        });
-    } else {
-        await interaction.followUp({
-            content: 'Wystąpił błąd podczas zapisywania raportu!',
-            ephemeral: true
-        });
-    }
-} 
+}); 

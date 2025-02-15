@@ -153,7 +153,9 @@ module.exports = {
                 ephemeral: true 
             });
         }
-    }
+    },
+    wyslijRaport,
+    formatujRaport
 };
 
 // Funkcja wysyłająca raport
