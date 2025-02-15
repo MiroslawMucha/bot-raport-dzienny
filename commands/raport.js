@@ -101,17 +101,17 @@ module.exports = {
             .setPlaceholder('Wybierz kierowcę')
             .addOptions(czlonkowie);
 
-        // Dodaj przyciski do wyboru czasu
-        const timeButtons = new ActionRowBuilder()
+        // Przyciski do wyboru diety
+        const dietaButtons = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
-                    .setCustomId('czas_rozpoczecia')
-                    .setLabel('Ustaw czas rozpoczęcia')
-                    .setStyle(ButtonStyle.Primary),
+                    .setCustomId('dieta_tak')
+                    .setLabel('Dieta: Tak')
+                    .setStyle(ButtonStyle.Success),
                 new ButtonBuilder()
-                    .setCustomId('czas_zakonczenia')
-                    .setLabel('Ustaw czas zakończenia')
-                    .setStyle(ButtonStyle.Primary)
+                    .setCustomId('dieta_nie')
+                    .setLabel('Dieta: Nie')
+                    .setStyle(ButtonStyle.Danger)
             );
 
         try {
@@ -122,7 +122,7 @@ module.exports = {
                     new ActionRowBuilder().addComponents(pojazdySelect),
                     new ActionRowBuilder().addComponents(osobyPracujaceSelect),
                     new ActionRowBuilder().addComponents(kierowcaSelect),
-                    timeButtons
+                    dietaButtons
                 ],
                 ephemeral: true
             });
