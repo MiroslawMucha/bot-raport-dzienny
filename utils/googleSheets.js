@@ -4,6 +4,9 @@ const path = require('path');
 const { GOOGLE_SHEETS } = require('../config/config');
 const { validateTime } = require('./timeValidation');
 
+// Dodaj stałą z zakresem arkusza
+const SHEET_RANGE = 'Raporty!A2:J'; // Zaczynamy od A2, żeby zachować nagłówki
+
 class GoogleSheetsService {
     constructor() {
         // Inicjalizacja klienta Google Sheets
@@ -23,45 +26,50 @@ class GoogleSheetsService {
     // Dodawanie nowego raportu do arkusza
     async dodajRaport(raportData) {
         try {
-            if (!this.sheetsApi) await this.init();
-            
-            // Walidacja danych przed zapisem
-            if (!raportData.miejscePracy || !raportData.czasRozpoczecia || !raportData.czasZakonczenia) {
+            // Sprawdź wymagane pola
+            if (!this.validateRaportData(raportData)) {
                 throw new Error('Brakuje wymaganych danych w raporcie!');
             }
-            
-            // Walidacja czasu
-            const timeValidation = validateTime(raportData.czasRozpoczecia, raportData.czasZakonczenia);
-            if (!timeValidation.valid) {
-                throw new Error(timeValidation.message);
-            }
-            
-            const values = [
-                [
-                    new Date().toISOString(),
-                    raportData.pracownik,
-                    raportData.miejscePracy,
-                    raportData.czasRozpoczecia,
-                    raportData.czasZakonczenia,
-                    raportData.dieta ? 'Tak' : 'Nie',
-                    raportData.osobyPracujace.join(', '),
-                    raportData.auto,
-                    raportData.kierowca,
-                    'Aktywny'
-                ]
-            ];
 
+            // Przygotuj dane do zapisu
+            const values = [[
+                new Date().toISOString(), // Data utworzenia
+                raportData.username,
+                raportData.miejscePracy,
+                raportData.czasRozpoczecia,
+                raportData.czasZakonczenia,
+                raportData.dieta ? 'Tak' : 'Nie',
+                raportData.osobyPracujace.join(', '),
+                raportData.auto,
+                raportData.kierowca,
+                'Aktywny' // Status raportu
+            ]];
+
+            // Zapisz do arkusza
             await this.sheetsApi.spreadsheets.values.append({
                 spreadsheetId: process.env.GOOGLE_SHEET_ID,
-                range: GOOGLE_SHEETS.RANGE,
+                range: SHEET_RANGE,
                 valueInputOption: 'USER_ENTERED',
-                resource: { values }
+                resource: {
+                    values: values
+                }
             });
+
             return true;
         } catch (error) {
             console.error('Błąd podczas zapisywania raportu:', error);
             throw error;
         }
+    }
+
+    validateRaportData(data) {
+        return data.username &&
+            data.miejscePracy &&
+            data.czasRozpoczecia &&
+            data.czasZakonczenia &&
+            data.osobyPracujace?.length > 0 &&
+            data.auto &&
+            data.kierowca;
     }
 
     // Aktualizacja istniejącego raportu
