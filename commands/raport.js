@@ -19,29 +19,68 @@ module.exports = {
         const miejscaPracySelect = new StringSelectMenuBuilder()
             .setCustomId('miejsce_pracy')
             .setPlaceholder('Wybierz miejsce pracy')
-            .addOptions(MIEJSCA_PRACY.map(miejsce => ({
-                label: miejsce,
-                value: miejsce
-            })));
+            .addOptions(
+                MIEJSCA_PRACY.length >= 5 ? 
+                MIEJSCA_PRACY.map(miejsce => ({
+                    label: miejsce,
+                    value: miejsce
+                })) :
+                [
+                    ...MIEJSCA_PRACY.map(miejsce => ({
+                        label: miejsce,
+                        value: miejsce
+                    })),
+                    ...Array(5 - MIEJSCA_PRACY.length).fill(0).map((_, i) => ({
+                        label: `Miejsce ${MIEJSCA_PRACY.length + i + 1}`,
+                        value: `placeholder_${i}`,
+                        default: false
+                    }))
+                ]
+            );
 
         // Utworzenie formularza z wyborem pojazdu
         const pojazdySelect = new StringSelectMenuBuilder()
             .setCustomId('pojazd')
             .setPlaceholder('Wybierz pojazd')
-            .addOptions(POJAZDY.map(pojazd => ({
-                label: pojazd,
-                value: pojazd
-            })));
+            .addOptions(
+                POJAZDY.length >= 5 ?
+                POJAZDY.map(pojazd => ({
+                    label: pojazd,
+                    value: pojazd
+                })) :
+                [
+                    ...POJAZDY.map(pojazd => ({
+                        label: pojazd,
+                        value: pojazd
+                    })),
+                    ...Array(5 - POJAZDY.length).fill(0).map((_, i) => ({
+                        label: `Pojazd ${POJAZDY.length + i + 1}`,
+                        value: `placeholder_${i}`,
+                        default: false
+                    }))
+                ]
+            );
 
         // Dodaj nową funkcję do pobierania członków serwera
         async function pobierzCzlonkowSerwera(guild) {
             const members = await guild.members.fetch();
-            return members
+            let options = members
                 .filter(member => !member.user.bot)
                 .map(member => ({
                     label: member.displayName,
                     value: member.id
                 }));
+
+            // Jeśli jest mniej niż 5 opcji, dodaj placeholder'y
+            while (options.length < 5) {
+                options.push({
+                    label: `Pracownik ${options.length + 1}`,
+                    value: `placeholder_${options.length + 1}`,
+                    default: false
+                });
+            }
+
+            return options;
         }
 
         // W funkcji execute dodaj nowe pola formularza:
