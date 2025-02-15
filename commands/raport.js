@@ -88,17 +88,25 @@ module.exports = {
 
         // Wysłanie formularza
         await interaction.reply({
-            content: 'Wypełnij formularz raportu:',
+            content: 'Wypełnij formularz raportu (Krok 1/2):',
             components: [
                 new ActionRowBuilder().addComponents(miejscaPracySelect),
                 new ActionRowBuilder().addComponents(pojazdySelect),
                 new ActionRowBuilder().addComponents(osobyPracujaceSelect),
                 new ActionRowBuilder().addComponents(kierowcaSelect),
-                timeInputs,
-                dietaButtons
+                timeInputs
             ],
             ephemeral: true
         });
+
+        // Po wybraniu pierwszych opcji, wyślij drugi etap
+        if (raportData.miejscePracy && raportData.auto && raportData.osobyPracujace.length > 0 && raportData.kierowca) {
+            await interaction.followUp({
+                content: 'Krok 2/2 - Wybierz dietę:',
+                components: [dietaButtons],
+                ephemeral: true
+            });
+        }
 
         // Kolektor do zbierania odpowiedzi
         const filter = i => i.user.id === interaction.user.id;
