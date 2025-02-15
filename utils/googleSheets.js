@@ -4,9 +4,9 @@ const path = require('path');
 const { GOOGLE_SHEETS } = require('../config/config');
 const { validateTime } = require('./timeValidation');
 
-// Zmiana formatu zakresu arkusza
-const SHEET_NAME = 'Raporty';
-const SHEET_RANGE = 'A:J';
+// Zmiana nazwy arkusza na prawidłową
+const SHEET_NAME = 'Arkusz1';  // Zmiana z 'Raporty' na 'Arkusz1'
+const SHEET_RANGE = 'A:I';     // Zmiana z A:J na A:I (9 kolumn)
 
 class GoogleSheetsService {
     constructor() {
@@ -43,20 +43,20 @@ class GoogleSheetsService {
                 throw new Error('Brakuje wymaganych danych w raporcie!');
             }
 
-            // Przygotuj dane do zapisu
+            // Przygotuj dane do zapisu w kolejności zgodnej z arkuszem
             const values = [[
-                new Date().toISOString(),
-                raportData.username,
-                raportData.czasRozpoczecia,
-                raportData.czasZakonczenia,
-                raportData.dieta ? 'Tak' : 'Nie',
-                raportData.osobyPracujace.join(', '),
-                raportData.auto,
-                raportData.kierowca,
-                'Aktywny'
+                new Date().toISOString(),        // Data
+                raportData.username,             // Pracownik
+                raportData.czasRozpoczecia,      // Czas rozpoczęcia
+                raportData.czasZakonczenia,      // Czas zakończenia
+                raportData.dieta ? 'Tak' : 'Nie',// Dieta
+                raportData.osobyPracujace.join(', '), // Osoby pracujące
+                raportData.auto,                 // Auto
+                raportData.kierowca,             // Kierowca
+                'Aktywny'                        // Status
             ]];
 
-            // Zapisz do arkusza z poprawionym formatem zakresu
+            // Zapisz do arkusza z poprawioną nazwą arkusza
             const response = await this.sheetsApi.spreadsheets.values.append({
                 spreadsheetId: process.env.GOOGLE_SHEET_ID,
                 range: `${SHEET_NAME}!${SHEET_RANGE}`,
@@ -83,28 +83,28 @@ class GoogleSheetsService {
             data.kierowca;
     }
 
-    // Aktualizacja istniejącego raportu też wymaga poprawki
+    // Aktualizacja istniejącego raportu
     async aktualizujRaport(rowIndex, raportData) {
         if (!this.sheetsApi) await this.init();
 
         const values = [
             [
-                raportData.data,
-                raportData.pracownik,
-                raportData.czasRozpoczecia,
-                raportData.czasZakonczenia,
-                raportData.dieta ? 'Tak' : 'Nie',
-                raportData.osobyPracujace.join(', '),
-                raportData.auto,
-                raportData.kierowca,
-                'Edytowany'
+                raportData.data,                 // Data
+                raportData.pracownik,            // Pracownik
+                raportData.czasRozpoczecia,      // Czas rozpoczęcia
+                raportData.czasZakonczenia,      // Czas zakończenia
+                raportData.dieta ? 'Tak' : 'Nie',// Dieta
+                raportData.osobyPracujace.join(', '), // Osoby pracujące
+                raportData.auto,                 // Auto
+                raportData.kierowca,             // Kierowca
+                'Edytowany'                      // Status
             ]
         ];
 
         try {
             await this.sheetsApi.spreadsheets.values.update({
                 spreadsheetId: process.env.GOOGLE_SHEET_ID,
-                range: `${SHEET_NAME}!A${rowIndex}:J${rowIndex}`,
+                range: `${SHEET_NAME}!A${rowIndex}:I${rowIndex}`,
                 valueInputOption: 'USER_ENTERED',
                 resource: { values }
             });
