@@ -130,12 +130,6 @@ client.on('interactionCreate', async interaction => {
                 const time = interaction.fields.getTextInputValue('time_input');
                 const fullDateTime = `${date} ${time}`;
 
-                if (customId.includes('rozpoczecia')) {
-                    updateData.czasRozpoczecia = fullDateTime;
-                } else {
-                    updateData.czasZakonczenia = fullDateTime;
-                }
-
                 // Walidacja formatu daty i czasu
                 const dateTimeRegex = /^\d{2}\.\d{2}\.\d{4} \d{2}:\d{2}$/;
                 if (!dateTimeRegex.test(fullDateTime)) {
@@ -145,6 +139,19 @@ client.on('interactionCreate', async interaction => {
                     });
                     return;
                 }
+
+                if (customId.includes('rozpoczecia')) {
+                    updateData.czasRozpoczecia = fullDateTime;
+                } else {
+                    updateData.czasZakonczenia = fullDateTime;
+                }
+
+                // Aktualizuj dane i pokaż status
+                const updatedData = raportStore.updateReport(interaction.user.id, updateData);
+                await interaction.reply({
+                    content: `Zapisano ${customId.includes('rozpoczecia') ? 'czas rozpoczęcia' : 'czas zakończenia'}: ${fullDateTime}`,
+                    ephemeral: true
+                });
             }
 
             if (Object.keys(updateData).length > 0) {
@@ -168,7 +175,9 @@ client.on('interactionCreate', async interaction => {
                 currentData.auto && 
                 currentData.osobyPracujace.length > 0 && 
                 currentData.kierowca &&
-                typeof currentData.dieta !== 'undefined') {
+                typeof currentData.dieta !== 'undefined' &&
+                currentData.czasRozpoczecia && 
+                currentData.czasZakonczenia) {
                 
                 try {
                     await interaction.followUp({
@@ -176,14 +185,24 @@ client.on('interactionCreate', async interaction => {
                         ephemeral: true
                     });
 
+                    // Dodaj pole pracownik przed wysłaniem
+                    currentData.pracownik = currentData.username;
+
                     await wyslijRaport(interaction, currentData);
                     raportStore.deleteReport(interaction.user.id);
                 } catch (error) {
                     console.error('Błąd podczas wysyłania raportu:', error);
-                    await interaction.followUp({
-                        content: 'Wystąpił błąd podczas wysyłania raportu.',
-                        ephemeral: true
-                    });
+                    if (error.message === 'Brakuje wymaganych danych w raporcie!') {
+                        await interaction.followUp({
+                            content: 'Nie wszystkie pola są wypełnione. Upewnij się, że wprowadziłeś czas rozpoczęcia i zakończenia.',
+                            ephemeral: true
+                        });
+                    } else {
+                        await interaction.followUp({
+                            content: 'Wystąpił błąd podczas wysyłania raportu.',
+                            ephemeral: true
+                        });
+                    }
                 }
             }
         }
