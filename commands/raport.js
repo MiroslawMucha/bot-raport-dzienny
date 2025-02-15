@@ -4,7 +4,7 @@ const { ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, T
 const { MIEJSCA_PRACY, POJAZDY } = require('../config/config');
 const googleSheets = require('../utils/googleSheets');
 const ChannelManager = require('../utils/channelManager');
-const raportDataStore = require('../utils/raportDataStore');
+const raportStore = require('../utils/raportDataStore');
 
 module.exports = {
     // Definicja komendy
@@ -13,7 +13,7 @@ module.exports = {
         .setDescription('Utwórz nowy raport dzienny'),
 
     async execute(interaction) {
-        const raportData = raportDataStore.get(interaction.user.id);
+        const raportData = raportStore.getReport(interaction.user.id);
 
         // Utworzenie formularza z wyborem miejsca pracy
         const miejscaPracySelect = new StringSelectMenuBuilder()
@@ -129,22 +129,22 @@ module.exports = {
         collector.on('collect', async i => {
             switch (i.customId) {
                 case 'miejsce_pracy':
-                    raportData.miejscePracy = i.values[0];
+                    raportStore.updateReport(interaction.user.id, { miejscePracy: i.values[0] });
                     break;
                 case 'pojazd':
-                    raportData.auto = i.values[0];
+                    raportStore.updateReport(interaction.user.id, { auto: i.values[0] });
                     break;
                 case 'dieta_tak':
-                    raportData.dieta = true;
+                    raportStore.updateReport(interaction.user.id, { dieta: true });
                     break;
                 case 'dieta_nie':
-                    raportData.dieta = false;
+                    raportStore.updateReport(interaction.user.id, { dieta: false });
                     break;
                 case 'osoby_pracujace':
-                    raportData.osobyPracujace = i.values.map(value => czlonkowie.find(c => c.value === value).label);
+                    raportStore.updateReport(interaction.user.id, { osobyPracujace: i.values.map(value => czlonkowie.find(c => c.value === value).label) });
                     break;
                 case 'kierowca':
-                    raportData.kierowca = i.values[0];
+                    raportStore.updateReport(interaction.user.id, { kierowca: i.values[0] });
                     break;
                 case 'czas_rozpoczecia':
                 case 'czas_zakonczenia':
@@ -168,9 +168,9 @@ module.exports = {
                     
                     const czas = collected.first().content;
                     if (i.customId === 'czas_rozpoczecia') {
-                        raportData.czasRozpoczecia = czas;
+                        raportStore.updateReport(interaction.user.id, { czasRozpoczecia: czas });
                     } else {
-                        raportData.czasZakonczenia = czas;
+                        raportStore.updateReport(interaction.user.id, { czasZakonczenia: czas });
                     }
                     
                     await collected.first().reply({

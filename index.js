@@ -25,8 +25,8 @@ client.commands = new Collection();
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
 
-// Na początku pliku, po importach
-const raportDataStore = new Map();
+// Dodaj import store'a
+const raportStore = require('./utils/raportDataStore');
 
 for (const file of commandFiles) {
     const filePath = path.join(commandsPath, file);
@@ -55,24 +55,14 @@ client.on('interactionCreate', async interaction => {
 
             // Inicjalizacja danych raportu dla nowej komendy
             if (interaction.commandName === 'raport') {
-                raportDataStore.set(interaction.user.id, {
-                    userId: interaction.user.id,
-                    username: interaction.user.username,
-                    miejscePracy: '',
-                    czasRozpoczecia: '',
-                    czasZakonczenia: '',
-                    dieta: false,
-                    osobyPracujace: [],
-                    auto: '',
-                    kierowca: ''
-                });
+                raportStore.initReport(interaction.user.id, interaction.user.username);
             }
 
             console.log('Wykonywanie komendy:', interaction.commandName);
             await command.execute(interaction);
         } 
         else if (interaction.type === InteractionType.MessageComponent) {
-            const userData = raportDataStore.get(interaction.user.id);
+            const userData = raportStore.getReport(interaction.user.id);
             if (!userData) {
                 await interaction.reply({
                     content: 'Sesja wygasła. Użyj komendy /raport ponownie.',
@@ -83,10 +73,14 @@ client.on('interactionCreate', async interaction => {
 
             const customId = interaction.customId;
             if (customId.startsWith('miejsce_')) {
-                userData.miejscePracy = interaction.values[0];
+                raportStore.updateReport(interaction.user.id, { 
+                    miejscePracy: interaction.values[0] 
+                });
             } 
             else if (customId.startsWith('pojazd_')) {
-                userData.auto = interaction.values[0];
+                raportStore.updateReport(interaction.user.id, { 
+                    auto: interaction.values[0] 
+                });
             }
             // ... reszta obsługi komponentów
 
