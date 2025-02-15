@@ -72,22 +72,33 @@ client.on('interactionCreate', async interaction => {
             }
 
             const customId = interaction.customId;
+            let updateData = {};
+
             if (customId.startsWith('miejsce_')) {
-                raportStore.updateReport(interaction.user.id, { 
-                    miejscePracy: interaction.values[0] 
-                });
+                updateData.miejscePracy = interaction.values[0];
             } 
             else if (customId.startsWith('pojazd_')) {
-                raportStore.updateReport(interaction.user.id, { 
-                    auto: interaction.values[0] 
+                updateData.auto = interaction.values[0];
+            }
+            else if (customId === 'osoby_pracujace') {
+                updateData.osobyPracujace = interaction.values;
+            }
+            else if (customId === 'kierowca') {
+                updateData.kierowca = interaction.values[0];
+            }
+            else if (customId.startsWith('dieta_')) {
+                updateData.dieta = customId === 'dieta_tak';
+            }
+
+            raportStore.updateReport(interaction.user.id, updateData);
+
+            // Po zebraniu wszystkich danych, pokaż modal z czasem
+            if (Object.keys(updateData).length > 0) {
+                await interaction.update({
+                    content: 'Zapisano wybór! Kontynuuj wypełnianie formularza.',
+                    components: interaction.message.components
                 });
             }
-            // ... reszta obsługi komponentów
-
-            await interaction.update({
-                content: 'Zapisano wybór!',
-                components: interaction.message.components
-            });
         }
     } catch (error) {
         console.error('Błąd wykonania komendy:', error);

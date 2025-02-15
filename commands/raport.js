@@ -19,36 +19,19 @@ module.exports = {
         const miejscaPracySelect = new StringSelectMenuBuilder()
             .setCustomId('miejsce_pracy')
             .setPlaceholder('Wybierz miejsce pracy')
-            .addOptions(
-                MIEJSCA_PRACY.map(miejsce => ({
-                    label: miejsce,
-                    value: miejsce
-                }))
-            );
+            .addOptions(MIEJSCA_PRACY.map(miejsce => ({
+                label: miejsce,
+                value: miejsce
+            })));
 
         // Utworzenie formularza z wyborem pojazdu
         const pojazdySelect = new StringSelectMenuBuilder()
             .setCustomId('pojazd')
             .setPlaceholder('Wybierz pojazd')
-            .addOptions(
-                POJAZDY.map(pojazd => ({
-                    label: pojazd,
-                    value: pojazd
-                }))
-            );
-
-        // Przyciski do wyboru diety
-        const dietaButtons = new ActionRowBuilder()
-            .addComponents(
-                new ButtonBuilder()
-                    .setCustomId('dieta_tak')
-                    .setLabel('Dieta: Tak')
-                    .setStyle(ButtonStyle.Success),
-                new ButtonBuilder()
-                    .setCustomId('dieta_nie')
-                    .setLabel('Dieta: Nie')
-                    .setStyle(ButtonStyle.Danger)
-            );
+            .addOptions(POJAZDY.map(pojazd => ({
+                label: pojazd,
+                value: pojazd
+            })));
 
         // Dodaj nową funkcję do pobierania członków serwera
         async function pobierzCzlonkowSerwera(guild) {
@@ -68,7 +51,7 @@ module.exports = {
             .setCustomId('osoby_pracujace')
             .setPlaceholder('Wybierz osoby pracujące')
             .setMinValues(1)
-            .setMaxValues(Math.min(czlonkowie.length, 25))
+            .setMaxValues(5)
             .addOptions(czlonkowie);
 
         const kierowcaSelect = new StringSelectMenuBuilder()
@@ -76,28 +59,28 @@ module.exports = {
             .setPlaceholder('Wybierz kierowcę')
             .addOptions(czlonkowie);
 
-        // Dodaj timeInputs do listy komponentów w interaction.reply
-        const timeInputs = new ActionRowBuilder()
+        // Przyciski do wyboru diety
+        const dietaButtons = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
-                    .setCustomId('czas_rozpoczecia')
-                    .setLabel('Ustaw czas rozpoczęcia')
-                    .setStyle(ButtonStyle.Primary),
+                    .setCustomId('dieta_tak')
+                    .setLabel('Dieta: Tak')
+                    .setStyle(ButtonStyle.Success),
                 new ButtonBuilder()
-                    .setCustomId('czas_zakonczenia')
-                    .setLabel('Ustaw czas zakończenia')
-                    .setStyle(ButtonStyle.Primary)
+                    .setCustomId('dieta_nie')
+                    .setLabel('Dieta: Nie')
+                    .setStyle(ButtonStyle.Danger)
             );
 
         try {
             await interaction.reply({
-                content: 'Wypełnij formularz raportu (Krok 1/2):',
+                content: 'Wypełnij formularz raportu:',
                 components: [
                     new ActionRowBuilder().addComponents(miejscaPracySelect),
                     new ActionRowBuilder().addComponents(pojazdySelect),
                     new ActionRowBuilder().addComponents(osobyPracujaceSelect),
                     new ActionRowBuilder().addComponents(kierowcaSelect),
-                    new ActionRowBuilder().addComponents(timeInputs)
+                    dietaButtons
                 ],
                 ephemeral: true
             });
@@ -146,43 +129,6 @@ module.exports = {
                 case 'kierowca':
                     raportStore.updateReport(interaction.user.id, { kierowca: i.values[0] });
                     break;
-                case 'czas_rozpoczecia':
-                case 'czas_zakonczenia':
-                    await i.reply({
-                        content: `Wpisz ${i.customId === 'czas_rozpoczecia' ? 'czas rozpoczęcia' : 'czas zakończenia'} w formacie HH:mm (np. 08:30):`,
-                        ephemeral: true
-                    });
-                
-                const filter = m => {
-                    return m.author.id === interaction.user.id && 
-                           /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(m.content);
-                };
-                
-                try {
-                    const collected = await interaction.channel.awaitMessages({
-                        filter,
-                        max: 1,
-                        time: 30000,
-                        errors: ['time']
-                    });
-                    
-                    const czas = collected.first().content;
-                    if (i.customId === 'czas_rozpoczecia') {
-                        raportStore.updateReport(interaction.user.id, { czasRozpoczecia: czas });
-                    } else {
-                        raportStore.updateReport(interaction.user.id, { czasZakonczenia: czas });
-                    }
-                    
-                    await collected.first().reply({
-                        content: `Ustawiono ${i.customId === 'czas_rozpoczecia' ? 'czas rozpoczęcia' : 'czas zakończenia'} na ${czas}`,
-                        ephemeral: true
-                    });
-                } catch (error) {
-                    await interaction.followUp({
-                        content: 'Nie podano czasu w wymaganym formacie lub upłynął czas na odpowiedź.',
-                        ephemeral: true
-                    });
-                }
             }
 
             await i.update({ content: 'Zapisano wybór!' });
@@ -192,9 +138,7 @@ module.exports = {
                 raportData.auto && 
                 typeof raportData.dieta !== 'undefined' && 
                 raportData.osobyPracujace.length > 0 && 
-                raportData.kierowca &&
-                raportData.czasRozpoczecia &&
-                raportData.czasZakonczenia) {
+                raportData.kierowca) {
                 collector.stop();
                 await wyslijRaport(interaction, raportData);
             }
