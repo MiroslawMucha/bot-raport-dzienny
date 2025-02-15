@@ -4,8 +4,9 @@ const path = require('path');
 const { GOOGLE_SHEETS } = require('../config/config');
 const { validateTime } = require('./timeValidation');
 
-// Dodaj stałą z zakresem arkusza
-const SHEET_RANGE = 'Raporty!A2:J'; // Zaczynamy od A2, żeby zachować nagłówki
+// Zmiana formatu zakresu arkusza
+const SHEET_NAME = 'Raporty';
+const SHEET_RANGE = 'A:J';
 
 class GoogleSheetsService {
     constructor() {
@@ -15,7 +16,7 @@ class GoogleSheetsService {
             scopes: ['https://www.googleapis.com/auth/spreadsheets']
         });
         this.sheetsApi = null;
-        this.init(); // Inicjalizuj API od razu przy tworzeniu instancji
+        this.init();
     }
 
     // Inicjalizacja połączenia z API
@@ -33,7 +34,6 @@ class GoogleSheetsService {
     // Dodawanie nowego raportu do arkusza
     async dodajRaport(raportData) {
         try {
-            // Upewnij się, że API jest zainicjalizowane
             if (!this.sheetsApi) {
                 await this.init();
             }
@@ -45,22 +45,21 @@ class GoogleSheetsService {
 
             // Przygotuj dane do zapisu
             const values = [[
-                new Date().toISOString(), // Data utworzenia
+                new Date().toISOString(),
                 raportData.username,
-                raportData.miejscePracy,
                 raportData.czasRozpoczecia,
                 raportData.czasZakonczenia,
                 raportData.dieta ? 'Tak' : 'Nie',
                 raportData.osobyPracujace.join(', '),
                 raportData.auto,
                 raportData.kierowca,
-                'Aktywny' // Status raportu
+                'Aktywny'
             ]];
 
-            // Zapisz do arkusza
+            // Zapisz do arkusza z poprawionym formatem zakresu
             const response = await this.sheetsApi.spreadsheets.values.append({
                 spreadsheetId: process.env.GOOGLE_SHEET_ID,
-                range: SHEET_RANGE,
+                range: `${SHEET_NAME}!${SHEET_RANGE}`,
                 valueInputOption: 'USER_ENTERED',
                 resource: {
                     values: values
@@ -77,7 +76,6 @@ class GoogleSheetsService {
 
     validateRaportData(data) {
         return data.username &&
-            data.miejscePracy &&
             data.czasRozpoczecia &&
             data.czasZakonczenia &&
             data.osobyPracujace?.length > 0 &&
@@ -85,7 +83,7 @@ class GoogleSheetsService {
             data.kierowca;
     }
 
-    // Aktualizacja istniejącego raportu
+    // Aktualizacja istniejącego raportu też wymaga poprawki
     async aktualizujRaport(rowIndex, raportData) {
         if (!this.sheetsApi) await this.init();
 
@@ -93,7 +91,6 @@ class GoogleSheetsService {
             [
                 raportData.data,
                 raportData.pracownik,
-                raportData.miejscePracy,
                 raportData.czasRozpoczecia,
                 raportData.czasZakonczenia,
                 raportData.dieta ? 'Tak' : 'Nie',
@@ -107,7 +104,7 @@ class GoogleSheetsService {
         try {
             await this.sheetsApi.spreadsheets.values.update({
                 spreadsheetId: process.env.GOOGLE_SHEET_ID,
-                range: `${GOOGLE_SHEETS.RANGE}!A${rowIndex}`,
+                range: `${SHEET_NAME}!A${rowIndex}:J${rowIndex}`,
                 valueInputOption: 'USER_ENTERED',
                 resource: { values }
             });
