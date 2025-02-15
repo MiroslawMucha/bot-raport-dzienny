@@ -1,5 +1,5 @@
 // Główny plik aplikacji
-const { Client, GatewayIntentBits, Collection } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, InteractionType } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
@@ -25,6 +25,9 @@ client.commands = new Collection();
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
 
+// Na początku pliku, po importach
+const raportDataStore = new Map();
+
 for (const file of commandFiles) {
     const filePath = path.join(commandsPath, file);
     const command = require(filePath);
@@ -42,29 +45,64 @@ client.on('interactionCreate', async interaction => {
     console.log('Otrzymano interakcję:', {
         type: interaction.type,
         commandName: interaction.commandName,
-        user: interaction.user.tag
+        user: interaction.user.username
     });
 
-    if (!interaction.isCommand()) {
-        console.log('To nie jest komenda slash');
-        return;
-    }
-
-    const command = client.commands.get(interaction.commandName);
-    if (!command) {
-        console.log('Nie znaleziono komendy:', interaction.commandName);
-        return;
-    }
-
     try {
-        console.log('Wykonywanie komendy:', interaction.commandName);
-        await command.execute(interaction);
+        if (interaction.type === InteractionType.ApplicationCommand) {
+            const command = client.commands.get(interaction.commandName);
+            if (!command) return;
+
+            // Inicjalizacja danych raportu dla nowej komendy
+            if (interaction.commandName === 'raport') {
+                raportDataStore.set(interaction.user.id, {
+                    userId: interaction.user.id,
+                    username: interaction.user.username,
+                    miejscePracy: '',
+                    czasRozpoczecia: '',
+                    czasZakonczenia: '',
+                    dieta: false,
+                    osobyPracujace: [],
+                    auto: '',
+                    kierowca: ''
+                });
+            }
+
+            console.log('Wykonywanie komendy:', interaction.commandName);
+            await command.execute(interaction);
+        } 
+        else if (interaction.type === InteractionType.MessageComponent) {
+            const userData = raportDataStore.get(interaction.user.id);
+            if (!userData) {
+                await interaction.reply({
+                    content: 'Sesja wygasła. Użyj komendy /raport ponownie.',
+                    ephemeral: true
+                });
+                return;
+            }
+
+            const customId = interaction.customId;
+            if (customId.startsWith('miejsce_')) {
+                userData.miejscePracy = interaction.values[0];
+            } 
+            else if (customId.startsWith('pojazd_')) {
+                userData.auto = interaction.values[0];
+            }
+            // ... reszta obsługi komponentów
+
+            await interaction.update({
+                content: 'Zapisano wybór!',
+                components: interaction.message.components
+            });
+        }
     } catch (error) {
         console.error('Błąd wykonania komendy:', error);
-        await interaction.reply({
-            content: 'Wystąpił błąd podczas wykonywania komendy!',
-            ephemeral: true
-        });
+        if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({ 
+                content: 'Wystąpił błąd podczas wykonywania komendy.', 
+                ephemeral: true 
+            });
+        }
     }
 });
 

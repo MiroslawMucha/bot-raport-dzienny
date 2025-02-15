@@ -4,6 +4,7 @@ const { ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, T
 const { MIEJSCA_PRACY, POJAZDY } = require('../config/config');
 const googleSheets = require('../utils/googleSheets');
 const ChannelManager = require('../utils/channelManager');
+const raportDataStore = require('../utils/raportDataStore');
 
 module.exports = {
     // Definicja komendy
@@ -12,6 +13,8 @@ module.exports = {
         .setDescription('Utwórz nowy raport dzienny'),
 
     async execute(interaction) {
+        const raportData = raportDataStore.get(interaction.user.id);
+
         // Utworzenie formularza z wyborem miejsca pracy
         const miejscaPracySelect = new StringSelectMenuBuilder()
             .setCustomId('miejsce_pracy')
@@ -86,18 +89,25 @@ module.exports = {
                     .setStyle(ButtonStyle.Primary)
             );
 
-        // Wysłanie formularza
-        await interaction.reply({
-            content: 'Wypełnij formularz raportu (Krok 1/2):',
-            components: [
-                new ActionRowBuilder().addComponents(miejscaPracySelect),
-                new ActionRowBuilder().addComponents(pojazdySelect),
-                new ActionRowBuilder().addComponents(osobyPracujaceSelect),
-                new ActionRowBuilder().addComponents(kierowcaSelect),
-                timeInputs
-            ],
-            ephemeral: true
-        });
+        try {
+            await interaction.reply({
+                content: 'Wypełnij formularz raportu (Krok 1/2):',
+                components: [
+                    new ActionRowBuilder().addComponents(miejscaPracySelect),
+                    new ActionRowBuilder().addComponents(pojazdySelect),
+                    new ActionRowBuilder().addComponents(osobyPracujaceSelect),
+                    new ActionRowBuilder().addComponents(kierowcaSelect),
+                    new ActionRowBuilder().addComponents(timeInputs)
+                ],
+                ephemeral: true
+            });
+        } catch (error) {
+            console.error('Błąd podczas wysyłania formularza:', error);
+            await interaction.reply({ 
+                content: 'Wystąpił błąd podczas tworzenia formularza.', 
+                ephemeral: true 
+            });
+        }
 
         // Po wybraniu pierwszych opcji, wyślij drugi etap
         if (raportData.miejscePracy && raportData.auto && raportData.osobyPracujace.length > 0 && raportData.kierowca) {
@@ -114,17 +124,6 @@ module.exports = {
             filter,
             time: 300000 // 5 minut na wypełnienie
         });
-
-        // Obiekt do przechowywania danych raportu
-        const raportData = {
-            pracownik: interaction.user.tag,
-            czasRozpoczecia: '',
-            czasZakonczenia: '',
-            dieta: false,
-            osobyPracujace: [],
-            auto: '',
-            kierowca: ''
-        };
 
         // Obsługa odpowiedzi
         collector.on('collect', async i => {
