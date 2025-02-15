@@ -114,6 +114,19 @@ module.exports = {
                     .setStyle(ButtonStyle.Danger)
             );
 
+        // Dodaj przyciski czasu po dietaButtons
+        const timeButtons = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId('czas_rozpoczecia')
+                    .setLabel('⏰ Ustaw czas rozpoczęcia')
+                    .setStyle(ButtonStyle.Primary),
+                new ButtonBuilder()
+                    .setCustomId('czas_zakonczenia')
+                    .setLabel('⏰ Ustaw czas zakończenia')
+                    .setStyle(ButtonStyle.Primary)
+            );
+
         try {
             await interaction.reply({
                 content: 'Wypełnij formularz raportu:',
@@ -124,6 +137,13 @@ module.exports = {
                     new ActionRowBuilder().addComponents(kierowcaSelect),
                     dietaButtons
                 ],
+                ephemeral: true
+            });
+
+            // Wyślij dodatkową wiadomość z wyborem czasu
+            await interaction.followUp({
+                content: 'Ustaw czas pracy:',
+                components: [timeButtons],
                 ephemeral: true
             });
         } catch (error) {

@@ -96,28 +96,52 @@ client.on('interactionCreate', async interaction => {
                 updateData.dieta = customId === 'dieta_tak';
             }
             else if (customId === 'czas_rozpoczecia' || customId === 'czas_zakonczenia') {
-                // Pokaż modal do wprowadzenia czasu
                 const modal = new ModalBuilder()
                     .setCustomId(`modal_${customId}`)
                     .setTitle(customId === 'czas_rozpoczecia' ? 'Czas rozpoczęcia' : 'Czas zakończenia');
 
+                // Pole na datę
+                const dateInput = new TextInputBuilder()
+                    .setCustomId('date_input')
+                    .setLabel('Data (format: DD.MM.YYYY)')
+                    .setStyle(TextInputStyle.Short)
+                    .setPlaceholder('np. 15.02.2024')
+                    .setRequired(true);
+
+                // Pole na godzinę
                 const timeInput = new TextInputBuilder()
-                    .setCustomId('czas_input')
-                    .setLabel('Wprowadź czas (format: HH:MM)')
+                    .setCustomId('time_input')
+                    .setLabel('Godzina (format: HH:MM)')
                     .setStyle(TextInputStyle.Short)
                     .setPlaceholder('np. 07:30')
                     .setRequired(true);
 
-                modal.addComponents(new ActionRowBuilder().addComponents(timeInput));
+                const dateRow = new ActionRowBuilder().addComponents(dateInput);
+                const timeRow = new ActionRowBuilder().addComponents(timeInput);
+
+                modal.addComponents(dateRow, timeRow);
                 await interaction.showModal(modal);
             }
             // Obsługa modalu z czasem
             else if (customId.startsWith('modal_czas_')) {
-                const czas = interaction.fields.getTextInputValue('czas_input');
+                const date = interaction.fields.getTextInputValue('date_input');
+                const time = interaction.fields.getTextInputValue('time_input');
+                const fullDateTime = `${date} ${time}`;
+
                 if (customId.includes('rozpoczecia')) {
-                    updateData.czasRozpoczecia = czas;
+                    updateData.czasRozpoczecia = fullDateTime;
                 } else {
-                    updateData.czasZakonczenia = czas;
+                    updateData.czasZakonczenia = fullDateTime;
+                }
+
+                // Walidacja formatu daty i czasu
+                const dateTimeRegex = /^\d{2}\.\d{2}\.\d{4} \d{2}:\d{2}$/;
+                if (!dateTimeRegex.test(fullDateTime)) {
+                    await interaction.reply({
+                        content: 'Nieprawidłowy format daty lub czasu. Użyj formatów: DD.MM.YYYY i HH:MM',
+                        ephemeral: true
+                    });
+                    return;
                 }
             }
 
