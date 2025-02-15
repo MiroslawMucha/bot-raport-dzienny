@@ -1,6 +1,6 @@
 // Komenda /raport do tworzenia nowych raportów
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, TextInputBuilder, TextInputStyle } = require('discord.js');
 const { MIEJSCA_PRACY, POJAZDY } = require('../config/config');
 const googleSheets = require('../utils/googleSheets');
 const ChannelManager = require('../utils/channelManager');
@@ -73,6 +73,19 @@ module.exports = {
             .setPlaceholder('Wybierz kierowcę')
             .addOptions(czlonkowie);
 
+        // Dodaj timeInputs do listy komponentów w interaction.reply
+        const timeInputs = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId('czas_rozpoczecia')
+                    .setLabel('Ustaw czas rozpoczęcia')
+                    .setStyle(ButtonStyle.Primary),
+                new ButtonBuilder()
+                    .setCustomId('czas_zakonczenia')
+                    .setLabel('Ustaw czas zakończenia')
+                    .setStyle(ButtonStyle.Primary)
+            );
+
         // Wysłanie formularza
         await interaction.reply({
             content: 'Wypełnij formularz raportu:',
@@ -81,6 +94,7 @@ module.exports = {
                 new ActionRowBuilder().addComponents(pojazdySelect),
                 new ActionRowBuilder().addComponents(osobyPracujaceSelect),
                 new ActionRowBuilder().addComponents(kierowcaSelect),
+                timeInputs,
                 dietaButtons
             ],
             ephemeral: true
@@ -125,12 +139,55 @@ module.exports = {
                 case 'kierowca':
                     raportData.kierowca = i.values[0];
                     break;
+                case 'czas_rozpoczecia':
+                case 'czas_zakonczenia':
+                    await i.reply({
+                        content: `Wpisz ${i.customId === 'czas_rozpoczecia' ? 'czas rozpoczęcia' : 'czas zakończenia'} w formacie HH:mm (np. 08:30):`,
+                        ephemeral: true
+                    });
+                
+                const filter = m => {
+                    return m.author.id === interaction.user.id && 
+                           /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(m.content);
+                };
+                
+                try {
+                    const collected = await interaction.channel.awaitMessages({
+                        filter,
+                        max: 1,
+                        time: 30000,
+                        errors: ['time']
+                    });
+                    
+                    const czas = collected.first().content;
+                    if (i.customId === 'czas_rozpoczecia') {
+                        raportData.czasRozpoczecia = czas;
+                    } else {
+                        raportData.czasZakonczenia = czas;
+                    }
+                    
+                    await collected.first().reply({
+                        content: `Ustawiono ${i.customId === 'czas_rozpoczecia' ? 'czas rozpoczęcia' : 'czas zakończenia'} na ${czas}`,
+                        ephemeral: true
+                    });
+                } catch (error) {
+                    await interaction.followUp({
+                        content: 'Nie podano czasu w wymaganym formacie lub upłynął czas na odpowiedź.',
+                        ephemeral: true
+                    });
+                }
             }
 
             await i.update({ content: 'Zapisano wybór!' });
 
             // Sprawdzenie czy wszystkie dane są wypełnione
-            if (raportData.miejscePracy && raportData.auto && typeof raportData.dieta !== 'undefined' && raportData.osobyPracujace.length > 0 && raportData.kierowca) {
+            if (raportData.miejscePracy && 
+                raportData.auto && 
+                typeof raportData.dieta !== 'undefined' && 
+                raportData.osobyPracujace.length > 0 && 
+                raportData.kierowca &&
+                raportData.czasRozpoczecia &&
+                raportData.czasZakonczenia) {
                 collector.stop();
                 await wyslijRaport(interaction, raportData);
             }

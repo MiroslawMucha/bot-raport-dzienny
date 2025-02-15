@@ -476,7 +476,7 @@ git push origin main            # Wyślij na GitHub
 ### 11.2. Wdrożenie na serwer Ubuntu
 ```bash
 # 1. Połącz się z serwerem
-ssh użytkownik@adres-serwera
+ssh root@srv27.mikr.us -p10202
 
 # 2. Pierwsze wdrożenie
 cd /var/www/                     # Przejdź do katalogu aplikacji
@@ -537,4 +537,48 @@ git clean -fd                # Usuń nieśledzone pliki
 # Problemy z autoryzacją
 git config --list            # Sprawdź konfigurację
 # Sprawdź/odnów token GitHub
-``` 
+```
+
+### 11.5. Rozwiązywanie problemów z tokenami na serwerze
+```bash
+# 1. Sprawdź plik .env na serwerze
+cd /var/www/bot-raport-dzienny
+cat .env                        # Zobacz zawartość pliku
+
+# 2. Jeśli token jest nieprawidłowy:
+# a) Wygeneruj nowy token na Discord Developer Portal:
+# - Przejdź do https://discord.com/developers/applications
+# - Wybierz swoją aplikację
+# - Zakładka "Bot"
+# - Kliknij "Reset Token"
+# - Skopiuj nowy token
+
+# b) Edytuj plik .env na serwerze:
+nano .env
+# Zmień linię z TOKEN= na nowy token
+# Ctrl+X, Y, Enter aby zapisać
+
+# c) Zrestartuj bota:
+pm2 restart bot-raport
+
+# d) Sprawdź logi:
+pm2 logs bot-raport
+
+# 3. Jeśli problem nadal występuje:
+# Sprawdź czy token w .env zgadza się z tym na Discord Developer Portal
+pm2 stop bot-raport            # Zatrzymaj bota
+pm2 start index.js --name bot-raport  # Uruchom ponownie
+pm2 logs bot-raport            # Sprawdź logi
+
+# 4. Dodatkowe sprawdzenie uprawnień:
+ls -la .env                    # Sprawdź uprawnienia pliku
+chown root:root .env           # Zmień właściciela jeśli potrzeba
+chmod 600 .env                 # Ustaw bezpieczne uprawnienia
+```
+
+### 11.6. Ważne uwagi dotyczące tokenów
+- Token bota Discord jest jak hasło - musi być chroniony
+- Po wyciekach tokena należy go natychmiast zresetować
+- Tokeny nie powinny być commitowane do repozytorium
+- Po każdej zmianie tokena należy zrestartować bota
+- Zawsze trzymaj kopię działającego tokena w bezpiecznym miejscu 
