@@ -1,5 +1,5 @@
 // Główny plik aplikacji
-const { Client, GatewayIntentBits, Collection, InteractionType, ModalBuilder, TextInputBuilder, ActionRowBuilder, TextInputStyle } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, InteractionType, ModalBuilder, TextInputBuilder, ActionRowBuilder, TextInputStyle, StringSelectMenuBuilder } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
@@ -98,58 +98,97 @@ client.on('interactionCreate', async interaction => {
                 updateData.dieta = customId === 'dieta_tak';
             }
             else if (customId === 'czas_rozpoczecia' || customId === 'czas_zakonczenia') {
-                const modal = new ModalBuilder()
-                    .setCustomId(`modal_${customId}`)
-                    .setTitle(customId === 'czas_rozpoczecia' ? 'Czas rozpoczęcia' : 'Czas zakończenia');
+                // Pobierz dzisiejszą datę
+                const today = new Date();
+                const dd = String(today.getDate()).padStart(2, '0');
+                const mm = String(today.getMonth() + 1).padStart(2, '0');
+                const yyyy = today.getFullYear();
 
-                // Pole na datę
-                const dateInput = new TextInputBuilder()
-                    .setCustomId('date_input')
-                    .setLabel('Data (format: DD.MM.YYYY)')
-                    .setStyle(TextInputStyle.Short)
-                    .setPlaceholder('np. 15.02.2024')
-                    .setRequired(true);
-
-                // Pole na godzinę
-                const timeInput = new TextInputBuilder()
-                    .setCustomId('time_input')
-                    .setLabel('Godzina (format: HH:MM)')
-                    .setStyle(TextInputStyle.Short)
-                    .setPlaceholder('np. 07:30')
-                    .setRequired(true);
-
-                const dateRow = new ActionRowBuilder().addComponents(dateInput);
-                const timeRow = new ActionRowBuilder().addComponents(timeInput);
-
-                modal.addComponents(dateRow, timeRow);
-                await interaction.showModal(modal);
-            }
-            // Obsługa modalu z czasem
-            else if (customId.startsWith('modal_czas_')) {
-                const date = interaction.fields.getTextInputValue('date_input');
-                const time = interaction.fields.getTextInputValue('time_input');
-                const fullDateTime = `${date} ${time}`;
-
-                // Walidacja formatu daty i czasu
-                const dateTimeRegex = /^\d{2}\.\d{2}\.\d{4} \d{2}:\d{2}$/;
-                if (!dateTimeRegex.test(fullDateTime)) {
-                    await interaction.reply({
-                        content: 'Nieprawidłowy format daty lub czasu. Użyj formatów: DD.MM.YYYY i HH:MM',
-                        ephemeral: true
+                // Utwórz listę dat (dzisiaj i 6 dni wstecz)
+                const dates = [];
+                for (let i = 0; i < 7; i++) {
+                    const date = new Date();
+                    date.setDate(today.getDate() - i);
+                    const formattedDate = `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}.${date.getFullYear()}`;
+                    dates.push({
+                        label: i === 0 ? `Dzisiaj (${formattedDate})` : formattedDate,
+                        value: formattedDate
                     });
-                    return;
                 }
 
-                if (customId.includes('rozpoczecia')) {
-                    updateData.czasRozpoczecia = fullDateTime;
+                // Utwórz listę godzin (od 6:00 do 22:00)
+                const hours = [];
+                for (let i = 6; i <= 22; i++) {
+                    const hour = String(i).padStart(2, '0');
+                    hours.push({
+                        label: `${hour}:00`,
+                        value: `${hour}:00`
+                    });
+                    hours.push({
+                        label: `${hour}:30`,
+                        value: `${hour}:30`
+                    });
+                }
+
+                const dateSelect = new StringSelectMenuBuilder()
+                    .setCustomId(`date_${customId}`)
+                    .setPlaceholder('Wybierz datę')
+                    .addOptions(dates);
+
+                const timeSelect = new StringSelectMenuBuilder()
+                    .setCustomId(`time_${customId}`)
+                    .setPlaceholder('Wybierz godzinę')
+                    .addOptions(hours);
+
+                const components = [
+                    new ActionRowBuilder().addComponents(dateSelect),
+                    new ActionRowBuilder().addComponents(timeSelect)
+                ];
+
+                await interaction.reply({
+                    content: customId === 'czas_rozpoczecia' ? 
+                        'Wybierz datę i godzinę rozpoczęcia:' : 
+                        'Wybierz datę i godzinę zakończenia:',
+                    components: components,
+                    ephemeral: true
+                });
+            }
+            // Obsługa wyboru daty
+            else if (customId.startsWith('date_czas_')) {
+                const selectedDate = interaction.values[0];
+                const timeData = raportStore.getReport(interaction.user.id);
+                const isStartTime = customId.includes('rozpoczecia');
+                
+                if (isStartTime) {
+                    timeData.tempStartDate = selectedDate;
                 } else {
-                    updateData.czasZakonczenia = fullDateTime;
+                    timeData.tempEndDate = selectedDate;
+                }
+                
+                raportStore.updateReport(interaction.user.id, timeData);
+                await interaction.deferUpdate();
+            }
+            // Obsługa wyboru godziny
+            else if (customId.startsWith('time_czas_')) {
+                const selectedTime = interaction.values[0];
+                const timeData = raportStore.getReport(interaction.user.id);
+                const isStartTime = customId.includes('rozpoczecia');
+                
+                if (isStartTime) {
+                    if (timeData.tempStartDate) {
+                        updateData.czasRozpoczecia = `${timeData.tempStartDate} ${selectedTime}`;
+                        delete timeData.tempStartDate;
+                    }
+                } else {
+                    if (timeData.tempEndDate) {
+                        updateData.czasZakonczenia = `${timeData.tempEndDate} ${selectedTime}`;
+                        delete timeData.tempEndDate;
+                    }
                 }
 
-                // Aktualizuj dane i pokaż status
                 const updatedData = raportStore.updateReport(interaction.user.id, updateData);
                 await interaction.reply({
-                    content: `Zapisano ${customId.includes('rozpoczecia') ? 'czas rozpoczęcia' : 'czas zakończenia'}: ${fullDateTime}`,
+                    content: `Zapisano ${isStartTime ? 'czas rozpoczęcia' : 'czas zakończenia'}: ${isStartTime ? updatedData.czasRozpoczecia : updatedData.czasZakonczenia}`,
                     ephemeral: true
                 });
             }
