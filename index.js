@@ -100,9 +100,6 @@ client.on('interactionCreate', async interaction => {
             else if (customId === 'czas_rozpoczecia' || customId === 'czas_zakonczenia') {
                 // Pobierz dzisiejszą datę
                 const today = new Date();
-                const dd = String(today.getDate()).padStart(2, '0');
-                const mm = String(today.getMonth() + 1).padStart(2, '0');
-                const yyyy = today.getFullYear();
 
                 // Utwórz listę dat (dzisiaj i 6 dni wstecz)
                 const dates = [];
@@ -116,7 +113,7 @@ client.on('interactionCreate', async interaction => {
                     });
                 }
 
-                // Utwórz listę godzin (od 6:00 do 22:00)
+                // Utwórz listę godzin (od 6:00 do 22:00, co godzinę)
                 const hours = [];
                 for (let i = 6; i <= 22; i++) {
                     const hour = String(i).padStart(2, '0');
@@ -124,25 +121,35 @@ client.on('interactionCreate', async interaction => {
                         label: `${hour}:00`,
                         value: `${hour}:00`
                     });
-                    hours.push({
-                        label: `${hour}:30`,
-                        value: `${hour}:30`
-                    });
                 }
+
+                // Utwórz listę minut (00, 15, 30, 45)
+                const minutes = [
+                    { label: '00 minut', value: '00' },
+                    { label: '15 minut', value: '15' },
+                    { label: '30 minut', value: '30' },
+                    { label: '45 minut', value: '45' }
+                ];
 
                 const dateSelect = new StringSelectMenuBuilder()
                     .setCustomId(`date_${customId}`)
                     .setPlaceholder('Wybierz datę')
                     .addOptions(dates);
 
-                const timeSelect = new StringSelectMenuBuilder()
-                    .setCustomId(`time_${customId}`)
+                const hourSelect = new StringSelectMenuBuilder()
+                    .setCustomId(`hour_${customId}`)
                     .setPlaceholder('Wybierz godzinę')
                     .addOptions(hours);
 
+                const minuteSelect = new StringSelectMenuBuilder()
+                    .setCustomId(`minute_${customId}`)
+                    .setPlaceholder('Wybierz minuty')
+                    .addOptions(minutes);
+
                 const components = [
                     new ActionRowBuilder().addComponents(dateSelect),
-                    new ActionRowBuilder().addComponents(timeSelect)
+                    new ActionRowBuilder().addComponents(hourSelect),
+                    new ActionRowBuilder().addComponents(minuteSelect)
                 ];
 
                 await interaction.reply({
@@ -169,21 +176,34 @@ client.on('interactionCreate', async interaction => {
                 await interaction.deferUpdate();
             }
             // Obsługa wyboru godziny
-            else if (customId.startsWith('time_czas_')) {
-                const selectedTime = interaction.values[0];
+            else if (customId.startsWith('hour_czas_')) {
+                const selectedHour = interaction.values[0];
                 const timeData = raportStore.getReport(interaction.user.id);
                 const isStartTime = customId.includes('rozpoczecia');
                 
                 if (isStartTime) {
-                    if (timeData.tempStartDate) {
-                        updateData.czasRozpoczecia = `${timeData.tempStartDate} ${selectedTime}`;
-                        delete timeData.tempStartDate;
-                    }
+                    timeData.tempStartHour = selectedHour;
                 } else {
-                    if (timeData.tempEndDate) {
-                        updateData.czasZakonczenia = `${timeData.tempEndDate} ${selectedTime}`;
-                        delete timeData.tempEndDate;
-                    }
+                    timeData.tempEndHour = selectedHour;
+                }
+                
+                raportStore.updateReport(interaction.user.id, timeData);
+                await interaction.deferUpdate();
+            }
+            // Obsługa wyboru minut
+            else if (customId.startsWith('minute_czas_')) {
+                const selectedMinute = interaction.values[0];
+                const timeData = raportStore.getReport(interaction.user.id);
+                const isStartTime = customId.includes('rozpoczecia');
+                
+                if (isStartTime && timeData.tempStartDate && timeData.tempStartHour) {
+                    updateData.czasRozpoczecia = `${timeData.tempStartDate} ${timeData.tempStartHour.split(':')[0]}:${selectedMinute}`;
+                    delete timeData.tempStartDate;
+                    delete timeData.tempStartHour;
+                } else if (!isStartTime && timeData.tempEndDate && timeData.tempEndHour) {
+                    updateData.czasZakonczenia = `${timeData.tempEndDate} ${timeData.tempEndHour.split(':')[0]}:${selectedMinute}`;
+                    delete timeData.tempEndDate;
+                    delete timeData.tempEndHour;
                 }
 
                 const updatedData = raportStore.updateReport(interaction.user.id, updateData);
