@@ -1,5 +1,5 @@
 // Główny plik aplikacji
-const { Client, GatewayIntentBits, Collection, InteractionType } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, InteractionType, ModalBuilder, TextInputBuilder, ActionRowBuilder, TextInputStyle } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
@@ -77,8 +77,9 @@ client.on('interactionCreate', async interaction => {
             if (customId.startsWith('miejsce_')) {
                 updateData.miejscePracy = interaction.values[0];
             } 
-            else if (customId.startsWith('pojazd_')) {
+            else if (customId === 'auto') {
                 updateData.auto = interaction.values[0];
+                console.log('Wybrane auto:', updateData.auto);
             }
             else if (customId === 'osoby_pracujace') {
                 updateData.osobyPracujace = interaction.values;
@@ -90,6 +91,31 @@ client.on('interactionCreate', async interaction => {
             }
             else if (customId.startsWith('dieta_')) {
                 updateData.dieta = customId === 'dieta_tak';
+            }
+            else if (customId === 'czas_rozpoczecia' || customId === 'czas_zakonczenia') {
+                // Pokaż modal do wprowadzenia czasu
+                const modal = new ModalBuilder()
+                    .setCustomId(`modal_${customId}`)
+                    .setTitle(customId === 'czas_rozpoczecia' ? 'Czas rozpoczęcia' : 'Czas zakończenia');
+
+                const timeInput = new TextInputBuilder()
+                    .setCustomId('czas_input')
+                    .setLabel('Wprowadź czas (format: HH:MM)')
+                    .setStyle(TextInputStyle.Short)
+                    .setPlaceholder('np. 07:30')
+                    .setRequired(true);
+
+                modal.addComponents(new ActionRowBuilder().addComponents(timeInput));
+                await interaction.showModal(modal);
+            }
+            // Obsługa modalu z czasem
+            else if (customId.startsWith('modal_czas_')) {
+                const czas = interaction.fields.getTextInputValue('czas_input');
+                if (customId.includes('rozpoczecia')) {
+                    updateData.czasRozpoczecia = czas;
+                } else {
+                    updateData.czasZakonczenia = czas;
+                }
             }
 
             if (Object.keys(updateData).length > 0) {

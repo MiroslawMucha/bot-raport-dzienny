@@ -40,7 +40,7 @@ module.exports = {
 
         // Utworzenie formularza z wyborem pojazdu
         const pojazdySelect = new StringSelectMenuBuilder()
-            .setCustomId('pojazd')
+            .setCustomId('auto')
             .setPlaceholder('Wybierz pojazd')
             .addOptions(
                 POJAZDY.length >= 5 ?
@@ -101,17 +101,17 @@ module.exports = {
             .setPlaceholder('Wybierz kierowcę')
             .addOptions(czlonkowie);
 
-        // Przyciski do wyboru diety
-        const dietaButtons = new ActionRowBuilder()
+        // Dodaj przyciski do wyboru czasu
+        const timeButtons = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
-                    .setCustomId('dieta_tak')
-                    .setLabel('Dieta: Tak')
-                    .setStyle(ButtonStyle.Success),
+                    .setCustomId('czas_rozpoczecia')
+                    .setLabel('Ustaw czas rozpoczęcia')
+                    .setStyle(ButtonStyle.Primary),
                 new ButtonBuilder()
-                    .setCustomId('dieta_nie')
-                    .setLabel('Dieta: Nie')
-                    .setStyle(ButtonStyle.Danger)
+                    .setCustomId('czas_zakonczenia')
+                    .setLabel('Ustaw czas zakończenia')
+                    .setStyle(ButtonStyle.Primary)
             );
 
         try {
@@ -122,7 +122,7 @@ module.exports = {
                     new ActionRowBuilder().addComponents(pojazdySelect),
                     new ActionRowBuilder().addComponents(osobyPracujaceSelect),
                     new ActionRowBuilder().addComponents(kierowcaSelect),
-                    dietaButtons
+                    timeButtons
                 ],
                 ephemeral: true
             });
