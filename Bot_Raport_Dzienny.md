@@ -132,5 +132,3 @@ Formularz zgłoszenia uruchamiany jest przez komendę `/raport` i zawiera nastę
 🔹 **Automatyczne przypomnienia o raporcie (przesunięte do przyszłych funkcji)**
 
 ---
-
-🔥 **Plan gotowy!** Teraz przechodzimy do pisania skryptów! 🚀
