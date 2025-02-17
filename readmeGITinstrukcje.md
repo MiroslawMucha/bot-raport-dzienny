@@ -476,7 +476,7 @@ git push origin main            # Wyślij na GitHub
 ### 11.2. Wdrożenie na serwer Ubuntu
 ```bash
 # 1. Połącz się z serwerem
-ssh root@srv27.mikr.us -p10202
+ssh root@...
 
 # 2. Pierwsze wdrożenie
 cd /var/www/                     # Przejdź do katalogu aplikacji
