@@ -451,13 +451,13 @@ git checkout -b nazwa-brancha commit-hash
 
 ## 11. Szybka instrukcja codzienna
 
-### 11.1. Workflow: Cursor → Git → GitHub
+### 11.1. Workflow: Edytor_Kodu → Git → GitHub
 ```bash
 # 1. Przed rozpoczęciem pracy
 git pull origin main              # Pobierz najnowsze zmiany
 git checkout -b feature/nazwa     # Utwórz nową gałąź dla zmian
 
-# 2. Podczas pracy w Cursor
+# 2. Podczas pracy w Edytor_Kodu
 # Pracuj normalnie, zapisuj zmiany (Ctrl+S)
 
 # 3. Po zakończeniu pracy
