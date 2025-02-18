@@ -346,30 +346,6 @@ async function rozpocznijEdycje(interaction, raport) {
     });
 }
 
-// Funkcja formatująca raport (taka sama jak w raport.js)
-function formatujRaport(raportData, isEdit = false, originalDate = null) {
-    const header = isEdit ? 
-        ` RAPORT DZIENNY – EDYCJA (Oryginalny wpis: ${originalDate})` :
-        ` RAPORT DZIENNY – ORYGINAŁ`;
-
-    const displayName = raportData.globalName || raportData.displayName || raportData.username;
-    
-    return `
-━━━━
-📌**\`${displayName}\`** ${header}
-━━━━━━━━━━━━━━━━
-📅 **${raportData.data}**     
-⏳ **Czas pracy:**
-\`${raportData.czasRozpoczecia} - ${raportData.czasZakonczenia}\`
-
-🏢 **Miejsce pracy:** \`${raportData.miejscePracy}\`
-💰 **Dieta / Delegacja:** \`${raportData.dieta ? 'Tak' : 'Nie'}\`
-👥 **Osoby pracujące:** \`${raportData.osobyPracujace.join(', ')}\`
-🚗 **Auto:** \`${raportData.auto}\`
-🧑‍✈️ **Kierowca:** \`${raportData.kierowca}\`
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`.trim();
-}
-
 // Funkcja walidacji zmian przed zapisem
 async function validateAndSaveChanges(interaction, editSession) {
     try {
