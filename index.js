@@ -38,6 +38,14 @@ const { wyslijRaport, formatujRaport } = require('./commands/raport');
 const googleSheets = require('./utils/googleSheets');
 const ChannelManager = require('./utils/channelManager');
 
+// Dodaj import funkcji z edytujRaport.js
+const { 
+    handleBasicEdit, 
+    handleOsobyEdit, 
+    handleCzasEdit, 
+    validateAndSaveChanges 
+} = require('./commands/edytujRaport');
+
 for (const file of commandFiles) {
     const filePath = path.join(commandsPath, file);
     const command = require(filePath);

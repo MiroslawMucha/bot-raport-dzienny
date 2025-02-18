@@ -213,7 +213,7 @@ class GoogleSheetsService {
         }
     }
 
-    async getEditableReports(username, daysBack = 7) {
+    async getEditableReports(username) {
         if (!this.sheetsApi) await this.init();
         
         try {
@@ -223,32 +223,31 @@ class GoogleSheetsService {
             });
 
             const rows = response.data.values || [];
-            const currentDate = new Date();
-            const sevenDaysAgo = new Date(currentDate - (daysBack * 24 * 60 * 60 * 1000));
-
-            return rows
+            
+            // Filtrujemy i sortujemy raporty użytkownika
+            const userReports = rows
                 .filter(row => {
                     const [raportId] = row;
                     const reportUsername = raportId.split('-').pop();
-                    const reportDate = new Date(raportId.split('-').slice(0,3).join('-'));
-                    
-                    return reportUsername === username && 
-                           reportDate >= sevenDaysAgo &&
-                           row[9] === 'Aktywny'; // Status
+                    return reportUsername === username && row[9] === 'Aktywny'; // Status
                 })
-                .map((row, index) => ({
-                    rowIndex: rows.indexOf(row) + 1,
-                    raportId: row[0],
-                    pracownik: row[1],
-                    miejscePracy: row[2],
-                    czasRozpoczecia: row[3],
-                    czasZakonczenia: row[4],
-                    dieta: row[5] === 'Tak',
-                    osobyPracujace: row[6].split(', '),
-                    auto: row[7],
-                    kierowca: row[8],
-                    status: row[9]
-                }));
+                .sort((a, b) => new Date(b[0]) - new Date(a[0])) // Sortuj od najnowszych
+                .slice(0, 7); // Weź tylko 7 ostatnich raportów
+
+            return userReports.map((row, index) => ({
+                rowIndex: rows.indexOf(row) + 1,
+                raportId: row[0],
+                pracownik: row[1],
+                miejscePracy: row[2],
+                czasRozpoczecia: row[3],
+                czasZakonczenia: row[4],
+                dieta: row[5] === 'Tak',
+                osobyPracujace: row[6].split(', '),
+                auto: row[7],
+                kierowca: row[8],
+                status: row[9]
+            }));
+
         } catch (error) {
             console.error('❌ Błąd podczas pobierania raportów do edycji:', error);
             throw error;
