@@ -240,21 +240,6 @@ client.on('interactionCreate', async interaction => {
                 });
             }
 
-            if (Object.keys(updateData).length > 0) {
-                const updatedData = raportStore.updateReport(interaction.user.id, updateData);
-                console.log('Zaktualizowane dane:', updatedData);
-                
-                try {
-                    await interaction.deferUpdate();
-                    await interaction.editReply({
-                        content: `Zapisano wybór: ${JSON.stringify(updateData)}`,
-                        components: interaction.message.components
-                    });
-                } catch (error) {
-                    console.error('Błąd aktualizacji interakcji:', error);
-                }
-            }
-
             // Sprawdź czy formularz jest kompletny
             const currentData = raportStore.getReport(interaction.user.id);
             if (currentData.miejscePracy && 
