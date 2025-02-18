@@ -128,7 +128,7 @@ module.exports = {
             );
 
         try {
-            await interaction.reply({
+            const response = await interaction.reply({
                 content: 'Wypełnij formularz raportu:',
                 components: [
                     new ActionRowBuilder().addComponents(miejscaPracySelect),
@@ -140,12 +140,63 @@ module.exports = {
                 ephemeral: true
             });
 
-            // Wyślij dodatkową wiadomość z wyborem czasu
+            // Dodajemy kolektor do zbierania odpowiedzi
+            const collector = response.createMessageComponentCollector({ 
+                time: 180000 // 3 minuty na wypełnienie
+            });
+
+            // Stan formularza
+            let formState = {
+                miejscePracy: '',
+                auto: '',
+                osobyPracujace: [],
+                kierowca: '',
+                dieta: null
+            };
+
+            collector.on('collect', async i => {
+                // Sprawdzamy typ interakcji
+                switch(i.customId) {
+                    case 'miejsce_pracy':
+                        formState.miejscePracy = i.values[0];
+                        break;
+                    case 'auto':
+                        formState.auto = i.values[0];
+                        break;
+                    case 'osoby_pracujace':
+                        formState.osobyPracujace = i.values;
+                        break;
+                    case 'kierowca':
+                        formState.kierowca = i.values[0];
+                        break;
+                    case 'dieta_tak':
+                        formState.dieta = true;
+                        break;
+                    case 'dieta_nie':
+                        formState.dieta = false;
+                        break;
+                }
+
+                // Aktualizujemy wiadomość z aktualnym stanem
+                await i.update({
+                    content: `**Formularz raportu:**\n${formatujStanFormularza(formState)}`,
+                    components: [
+                        new ActionRowBuilder().addComponents(miejscaPracySelect),
+                        new ActionRowBuilder().addComponents(pojazdySelect),
+                        new ActionRowBuilder().addComponents(osobyPracujaceSelect),
+                        new ActionRowBuilder().addComponents(kierowcaSelect),
+                        dietaButtons
+                    ]
+                });
+            });
+
+            // Wysyłamy dodatkową wiadomość z wyborem czasu
             await interaction.followUp({
                 content: 'Ustaw czas pracy:',
                 components: [timeButtons],
                 ephemeral: true
             });
+
         } catch (error) {
             console.error('Błąd podczas wysyłania formularza:', error);
             await interaction.reply({ 
@@ -208,5 +259,16 @@ ${header}
 👥 Osoby pracujące: ${raportData.osobyPracujace.join(', ')}
 🚗 Auto: ${raportData.auto}
 🧑‍✈️ Kierowca: ${raportData.kierowca}
+    `.trim();
+}
+
+// Funkcja pomocnicza do formatowania stanu formularza
+function formatujStanFormularza(state) {
+    return `
+📍 Miejsce pracy: ${state.miejscePracy || 'nie wybrano'}
+🚗 Auto: ${state.auto || 'nie wybrano'}
+👥 Osoby pracujące: ${state.osobyPracujace.length > 0 ? state.osobyPracujace.join(', ') : 'nie wybrano'}
+🧑‍✈️ Kierowca: ${state.kierowca || 'nie wybrano'}
+💰 Dieta: ${state.dieta === null ? 'nie wybrano' : state.dieta ? 'Tak' : 'Nie'}
     `.trim();
 } 
