@@ -127,9 +127,20 @@ client.on('interactionCreate', async interaction => {
 🧑‍✈️ Kierowca: ${updatedData.kierowca || 'nie wybrano'}
 💰 Dieta: ${updatedData.dieta === undefined ? 'nie wybrano' : updatedData.dieta ? 'Tak' : 'Nie'}`,
                     components: interaction.message.components.map(row => {
-                        const component = row.components[0];
-                        if (component.data.custom_id === customId) {
-                            component.data.placeholder = `✅ Wybrano: ${interaction.values[0]}`;
+                        // Jeśli to rząd z przyciskami diety
+                        if (row.components[0] instanceof ButtonBuilder || 
+                            row.components[0].data.type === 2) { // 2 to typ dla przycisków
+                            return new ActionRowBuilder()
+                                .addComponents(
+                                    new ButtonBuilder()
+                                        .setCustomId('dieta_tak')
+                                        .setLabel(updatedData.dieta ? '✅ Dieta: Tak' : 'Dieta: Tak')
+                                        .setStyle(updatedData.dieta ? ButtonStyle.Success : ButtonStyle.Secondary),
+                                    new ButtonBuilder()
+                                        .setCustomId('dieta_nie')
+                                        .setLabel(!updatedData.dieta ? '✅ Dieta: Nie' : 'Dieta: Nie')
+                                        .setStyle(!updatedData.dieta ? ButtonStyle.Danger : ButtonStyle.Secondary)
+                                );
                         }
                         return row;
                     })
