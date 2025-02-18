@@ -2,6 +2,9 @@
 const raportDataStore = new Map();
 const locks = new Map();
 
+// Dodajemy stałą dla maksymalnej liczby jednoczesnych formularzy
+const MAX_CONCURRENT_FORMS = 10;
+
 // Stała określająca czas ważności formularza (5 minut)
 const FORM_TIMEOUT = 5 * 60 * 1000;
 // Interwał czyszczenia (2 minuty)
@@ -11,6 +14,16 @@ const CLEANUP_INTERVAL = 2 * 60 * 1000;
 const store = {
     // Inicjalizacja nowego raportu
     initReport: (userId, userData) => {
+        // Sprawdzamy aktualną liczbę aktywnych formularzy
+        if (raportDataStore.size >= MAX_CONCURRENT_FORMS) {
+            console.log('⚠️ [RAPORT] Przekroczono limit jednoczesnych formularzy:', {
+                aktualnaLiczba: raportDataStore.size,
+                maksymalnaLiczba: MAX_CONCURRENT_FORMS,
+                aktywniUzytkownicy: Array.from(raportDataStore.values()).map(r => r.username)
+            });
+            throw new Error(`Zbyt wiele aktywnych formularzy (${raportDataStore.size}/${MAX_CONCURRENT_FORMS}). Spróbuj ponownie za chwilę.`);
+        }
+
         console.log('🔄 [RAPORT] Inicjalizacja nowego raportu:', {
             krok: 'rozpoczęcie',
             userId,
