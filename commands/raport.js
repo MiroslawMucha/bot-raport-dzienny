@@ -277,13 +277,11 @@ function formatujRaport(raportData, isEdit = false, originalDate = null) {
 ━━━━
 📌**\`${displayName}\`** ${header}
 ━━━━━━━━━━━━━━━━
-📅 **${dataRaportu}** ‍✈️ **Pracownik:** \`${raportData.globalName || raportData.displayName || raportData.username}\`
-
-🏢 **Miejsce pracy:** \`${raportData.miejscePracy}\`
-
+📅 **${dataRaportu}** //‍✈️ **Pracownik:** \`${raportData.globalName || raportData.displayName || raportData.username}\`
 ⏳ **Czas pracy:**
 \`${raportData.czasRozpoczecia} - ${raportData.czasZakonczenia}\`
 
+🏢 **Miejsce pracy:** \`${raportData.miejscePracy}\`
 💰 **Dieta / Delegacja:** \`${raportData.dieta ? 'Tak' : 'Nie'}\`
 👥 **Osoby pracujące:** \`${raportData.osobyPracujace.join(', ')}\`
 🚗 **Auto:** \`${raportData.auto}\`
