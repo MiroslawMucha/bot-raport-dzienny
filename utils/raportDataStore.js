@@ -64,6 +64,27 @@ const store = {
                 locks.delete(userId);
             }
         }
+    },
+
+    // Sprawdzenie czy użytkownik ma aktywny formularz
+    hasActiveReport: (userId) => {
+        const report = raportDataStore.get(userId);
+        if (!report) return false;
+
+        // Sprawdź czy formularz nie wygasł
+        const now = new Date();
+        if (now - report.startTime > FORM_TIMEOUT) {
+            // Jeśli wygasł, usuń go
+            store.deleteReport(userId);
+            return false;
+        }
+
+        return true;
+    },
+
+    // Wymuszony reset formularza
+    resetReport: (userId) => {
+        store.deleteReport(userId);
     }
 };
 

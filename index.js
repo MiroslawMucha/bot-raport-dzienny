@@ -70,6 +70,16 @@ client.on('interactionCreate', async interaction => {
             await command.execute(interaction);
         } 
         else if (interaction.type === InteractionType.MessageComponent) {
+            if (interaction.customId === 'reset_form') {
+                raportStore.resetReport(interaction.user.id);
+                await interaction.update({
+                    content: 'Formularz został zresetowany. Możesz teraz użyć komendy /raport aby rozpocząć od nowa.',
+                    components: [],
+                    ephemeral: true
+                });
+                return;
+            }
+
             const userData = raportStore.getReport(interaction.user.id);
             console.log('Dane użytkownika:', userData);
 

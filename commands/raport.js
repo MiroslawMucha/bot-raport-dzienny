@@ -14,6 +14,24 @@ module.exports = {
 
     async execute(interaction) {
         try {
+            // Sprawdź czy użytkownik ma aktywny formularz
+            if (raportStore.hasActiveReport(interaction.user.id)) {
+                const resetButton = new ActionRowBuilder()
+                    .addComponents(
+                        new ButtonBuilder()
+                            .setCustomId('reset_form')
+                            .setLabel('🔄 Zacznij od nowa')
+                            .setStyle(ButtonStyle.Danger)
+                    );
+
+                await interaction.reply({
+                    content: 'Masz już aktywny formularz. Dokończ go, poczekaj 5 minut na reset lub kliknij przycisk poniżej aby zacząć od nowa:',
+                    components: [resetButton],
+                    ephemeral: true
+                });
+                return;
+            }
+
             // Inicjalizacja raportu w store
             raportStore.initReport(interaction.user.id, {
                 username: interaction.user.username,
@@ -143,17 +161,10 @@ module.exports = {
                 ephemeral: true
             });
         } catch (error) {
-            if (error.message === 'Użytkownik już wypełnia formularz') {
-                await interaction.reply({
-                    content: 'Masz już aktywny formularz. Dokończ go lub poczekaj 5 minut na reset.',
-                    ephemeral: true
-                });
-                return;
-            }
             console.error('Błąd podczas wysyłania formularza:', error);
             await interaction.reply({ 
                 content: 'Wystąpił błąd podczas tworzenia formularza.', 
-                flags: ['Ephemeral'] // Zamiast ephemeral: true
+                ephemeral: true
             });
         }
     },
@@ -267,7 +278,7 @@ function formatujRaport(raportData, isEdit = false, originalDate = null) {
 ━━━━
 \`${displayName}\` ${header}
 ━━━━━━━━━━━━━━━━
-��‍✈️ **Pracownik:**
+‍✈️ **Pracownik:**
 \`${raportData.globalName || raportData.displayName || raportData.username}\`
 
 🏢 **Miejsce pracy:**
