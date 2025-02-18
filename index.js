@@ -98,44 +98,20 @@ client.on('interactionCreate', async interaction => {
                 const updatedData = raportStore.updateReport(interaction.user.id, updateData);
                 
                 // Aktualizuj wiadomość pokazując cały stan formularza
-                const miejscaPracySelect = new StringSelectMenuBuilder()
-                    .setCustomId('miejsce_pracy')
-                    .setPlaceholder(updatedData.miejscePracy ? 
-                        `✅ Wybrano: ${updatedData.miejscePracy}` : 
-                        '❌ Wybierz miejsce pracy')
-                    .addOptions([
-                        { label: 'Miejsce pracy', value: 'miejsce_pracy' }
-                    ]);
-
-                const pojazdySelect = new StringSelectMenuBuilder()
-                    .setCustomId('auto')
-                    .setPlaceholder(updatedData.auto ? 
-                        `✅ Wybrano: ${updatedData.auto}` : 
-                        '❌ Wybierz pojazd')
-                    .addOptions([
-                        { label: 'Auto', value: 'auto' }
-                    ]);
-
                 await interaction.update({
                     content: `**Stan formularza:**\n
-✅ Pola oznaczone na zielono są już wypełnione
-❌ Pola oznaczone na czerwono wymagają wypełnienia\n
-📋 **Wymagane pola:**
-${updatedData.miejscePracy ? '✅' : '❌'} Miejsce pracy
-${updatedData.auto ? '✅' : '❌'} Auto
-${updatedData.osobyPracujace?.length ? '✅' : '❌'} Osoby pracujące
-${updatedData.kierowca ? '✅' : '❌'} Kierowca
-${updatedData.dieta !== undefined ? '✅' : '❌'} Dieta
-${updatedData.czasRozpoczecia ? '✅' : '❌'} Czas rozpoczęcia
-${updatedData.czasZakonczenia ? '✅' : '❌'} Czas zakończenia`,
-                    components: [
-                        new ActionRowBuilder().addComponents(
-                            miejscaPracySelect
-                        ),
-                        new ActionRowBuilder().addComponents(
-                            pojazdySelect
-                        )
-                    ]
+📍 Miejsce pracy: ${updatedData.miejscePracy || 'nie wybrano'}
+🚗 Auto: ${updatedData.auto || 'nie wybrano'}
+👥 Osoby pracujące: ${updatedData.osobyPracujace?.length ? updatedData.osobyPracujace.join(', ') : 'nie wybrano'}
+🧑‍✈️ Kierowca: ${updatedData.kierowca || 'nie wybrano'}
+💰 Dieta: ${updatedData.dieta === undefined ? 'nie wybrano' : updatedData.dieta ? 'Tak' : 'Nie'}`,
+                    components: interaction.message.components.map(row => {
+                        const component = row.components[0];
+                        if (component.data.custom_id === customId) {
+                            component.data.placeholder = `✅ Wybrano: ${interaction.values[0]}`;
+                        }
+                        return row;
+                    })
                 });
             }
             // Obsługa wyboru diety
@@ -149,8 +125,14 @@ ${updatedData.czasZakonczenia ? '✅' : '❌'} Czas zakończenia`,
 🚗 Auto: ${updatedData.auto || 'nie wybrano'}
 👥 Osoby pracujące: ${updatedData.osobyPracujace?.length ? updatedData.osobyPracujace.join(', ') : 'nie wybrano'}
 🧑‍✈️ Kierowca: ${updatedData.kierowca || 'nie wybrano'}
-💰 Dieta: ${updatedData.dieta ? 'Tak' : 'Nie'}`,
-                    components: interaction.message.components
+💰 Dieta: ${updatedData.dieta === undefined ? 'nie wybrano' : updatedData.dieta ? 'Tak' : 'Nie'}`,
+                    components: interaction.message.components.map(row => {
+                        const component = row.components[0];
+                        if (component.data.custom_id === customId) {
+                            component.data.placeholder = `✅ Wybrano: ${interaction.values[0]}`;
+                        }
+                        return row;
+                    })
                 });
             }
             // Obsługa wyboru daty i czasu
@@ -230,39 +212,18 @@ Czy chcesz wysłać raport?`,
                     });
                 } else {
                     // Pokaż tylko aktualizację czasu
-                    const dateSelect = new StringSelectMenuBuilder()
-                        .setCustomId('data_raportu')
-                        .setPlaceholder(updatedData.selectedDate ? 
-                            `✅ Wybrano: ${updatedData.selectedDate}` : 
-                            '❌ Wybierz datę')
-                        .addOptions([
-                            { label: 'Data', value: 'data_raportu' }
-                        ]);
-
-                    const timeSelect = new StringSelectMenuBuilder()
-                        .setCustomId('godzina_rozpoczecia')
-                        .setPlaceholder(updatedData.czasRozpoczecia ? 
-                            `✅ Wybrano: ${updatedData.czasRozpoczecia.split(' ')[1]}` : 
-                            '❌ Wybierz godzinę rozpoczęcia')
-                        .addOptions([
-                            { label: 'Godzina', value: 'godzina_rozpoczecia' },
-                            { label: 'Minuta', value: 'minuta_rozpoczecia' }
-                        ]);
-
                     await interaction.update({
                         content: `**Wybrane parametry czasu:**\n
-📋 **Stan wypełnienia:**
-${updatedData.selectedDate ? '✅' : '❌'} Data
-${updatedData.czasRozpoczecia ? '✅' : '❌'} Czas rozpoczęcia
-${updatedData.czasZakonczenia ? '✅' : '❌'} Czas zakończenia`,
-                        components: [
-                            new ActionRowBuilder().addComponents(
-                                dateSelect
-                            ),
-                            new ActionRowBuilder().addComponents(
-                                timeSelect
-                            )
-                        ]
+📅 Data: ${updatedData.selectedDate || 'nie wybrano'}
+⏰ Czas rozpoczęcia: ${updatedData.czasRozpoczecia ? updatedData.czasRozpoczecia.split(' ')[1] : 'nie wybrano'}
+⏰ Czas zakończenia: ${updatedData.czasZakonczenia ? updatedData.czasZakonczenia.split(' ')[1] : 'nie wybrano'}`,
+                        components: interaction.message.components.map(row => {
+                            const component = row.components[0];
+                            if (component.data.custom_id === customId) {
+                                component.data.placeholder = `✅ Wybrano: ${interaction.values[0]}`;
+                            }
+                            return row;
+                        })
                     });
                 }
             }
