@@ -177,38 +177,53 @@ async function wyslijRaport(interaction, raportData) {
     try {
         // Dodajemy pełną nazwę do danych przed wysłaniem do Google Sheets
         const dataToSend = {
-            ...raportData,                    // Zachowujemy wszystkie oryginalne dane
+            ...raportData,
             pracownik: raportData.globalName || raportData.displayName || raportData.username,
-            miejscePracy: raportData.miejscePracy  // Upewniamy się, że miejsce pracy jest przekazane
+            miejscePracy: raportData.miejscePracy
         };
 
-        console.log('Dane wysyłane do Google Sheets:', dataToSend); // Dodajmy log do debugowania
+        console.log('Dane wysyłane do Google Sheets:', dataToSend);
+
+        // Formatowanie wiadomości raportu - przenosimy to przed try/catch
+        const raportMessage = formatujRaport(dataToSend, false);
 
         // Zapisanie do Google Sheets
         const zapisano = await googleSheets.dodajRaport(dataToSend);
 
         if (zapisano) {
-            // Formatowanie wiadomości raportu - przekazujemy dataToSend zamiast raportData
-            const raportMessage = formatujRaport(dataToSend, false);
+            try {
+                // Wysłanie na główny kanał raportów
+                const kanalRaporty = interaction.guild.channels.cache.get(process.env.KANAL_RAPORTY_ID);
+                await kanalRaporty.send(raportMessage);
 
-            // Wysłanie na główny kanał raportów
-            const kanalRaporty = interaction.guild.channels.cache.get(process.env.KANAL_RAPORTY_ID);
-            await kanalRaporty.send(raportMessage);
+                // Pobranie lub utworzenie prywatnego kanału użytkownika
+                const kanalPrywatny = await channelManager.getOrCreateUserChannel(
+                    interaction.guild,
+                    interaction.user
+                );
 
-            // Pobranie lub utworzenie prywatnego kanału użytkownika
-            const kanalPrywatny = await channelManager.getOrCreateUserChannel(
-                interaction.guild,
-                interaction.user
-            );
+                // Wysłanie na prywatny kanał użytkownika
+                await kanalPrywatny.send(raportMessage);
 
-            // Wysłanie na prywatny kanał użytkownika
-            await kanalPrywatny.send(raportMessage);
-
-            // Wysłanie potwierdzenia
-            await interaction.followUp({
-                content: 'Raport został pomyślnie zapisany i wysłany na odpowiednie kanały!',
-                ephemeral: true
-            });
+                await interaction.followUp({
+                    content: 'Raport został pomyślnie zapisany i wysłany na odpowiednie kanały!',
+                    ephemeral: true
+                });
+            } catch (channelError) {
+                console.error('Błąd podczas wysyłania raportu:', channelError);
+                
+                if (channelError.code === 50001) {
+                    await interaction.followUp({
+                        content: 'Bot nie ma wymaganych uprawnień. Upewnij się, że bot ma uprawnienia do:\n- Zarządzania kanałami\n- Wysyłania wiadomości\n- Czytania historii wiadomości',
+                        ephemeral: true
+                    });
+                } else {
+                    await interaction.followUp({
+                        content: 'Wystąpił błąd podczas wysyłania raportu. Raport został zapisany w Google Sheets.',
+                        ephemeral: true
+                    });
+                }
+            }
         } else {
             await interaction.followUp({
                 content: 'Wystąpił błąd podczas zapisywania raportu!',
@@ -216,39 +231,11 @@ async function wyslijRaport(interaction, raportData) {
             });
         }
     } catch (error) {
-        console.error('Błąd podczas wysyłania raportu:', error);
-        
-        // Informacja dla użytkownika o problemie
-        const errorMessage = error.code === 50001 
-            ? 'Nie można wysłać raportu do twojego kanału. Tworzę nowy kanał...'
-            : 'Wystąpił błąd podczas wysyłania raportu.';
-            
+        console.error('Błąd podczas przetwarzania raportu:', error);
         await interaction.followUp({
-            content: errorMessage,
+            content: 'Wystąpił nieoczekiwany błąd. Spróbuj ponownie później.',
             ephemeral: true
         });
-
-        // Jeśli to błąd dostępu, spróbuj utworzyć nowy kanał
-        if (error.code === 50001) {
-            try {
-                const newChannel = await channelManager.getOrCreateUserChannel(
-                    interaction.guild,
-                    interaction.user,
-                    true // force create new
-                );
-                await newChannel.send(raportMessage);
-                await interaction.followUp({
-                    content: 'Utworzono nowy kanał i wysłano raport!',
-                    ephemeral: true
-                });
-            } catch (secondError) {
-                console.error('Błąd podczas tworzenia nowego kanału:', secondError);
-                await interaction.followUp({
-                    content: 'Nie udało się utworzyć nowego kanału. Skontaktuj się z administratorem.',
-                    ephemeral: true
-                });
-            }
-        }
     }
 }
 
