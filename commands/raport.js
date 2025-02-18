@@ -5,6 +5,7 @@ const { MIEJSCA_PRACY, POJAZDY, CZAS } = require('../config/config');
 const googleSheets = require('../utils/googleSheets');
 const channelManager = require('../utils/channelManager');
 const raportStore = require('../utils/raportDataStore');
+const locks = require('../utils/locks');
 
 module.exports = {
     // Definicja komendy
@@ -175,6 +176,15 @@ async function pobierzCzlonkowSerwera(guild) {
 // Funkcja wysyłająca raport
 async function wyslijRaport(interaction, raportData) {
     try {
+        // Dodajemy sprawdzenie czy użytkownik nie ma już aktywnego formularza
+        if (locks.has(interaction.user.id)) {
+            await interaction.reply({
+                content: 'Masz już aktywny formularz. Dokończ go lub poczekaj 30 minut na reset.',
+                ephemeral: true
+            });
+            return;
+        }
+
         // Dodajemy pełną nazwę do danych przed wysłaniem do Google Sheets
         const dataToSend = {
             ...raportData,
@@ -231,6 +241,8 @@ async function wyslijRaport(interaction, raportData) {
             });
         }
     } catch (error) {
+        // Zawsze zwalniamy blokadę w przypadku błędu
+        raportStore.deleteReport(interaction.user.id);
         console.error('Błąd podczas przetwarzania raportu:', error);
         await interaction.followUp({
             content: 'Wystąpił nieoczekiwany błąd. Spróbuj ponownie później.',

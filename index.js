@@ -45,6 +45,11 @@ client.once('ready', () => {
     console.log(`Zalogowano jako ${client.user.tag}`);
 });
 
+// Dodajemy okresowe czyszczenie nieaktywnych formularzy
+setInterval(() => {
+    raportStore.cleanupStaleReports();
+}, 5 * 60 * 1000); // Co 5 minut
+
 // Obsługa interakcji (komendy slash)
 client.on('interactionCreate', async interaction => {
     console.log('Otrzymano interakcję:', {
@@ -279,6 +284,10 @@ Czy chcesz wysłać raport?`,
             }
         }
     } catch (error) {
+        // Zwalniamy blokadę w przypadku błędu
+        if (interaction.user) {
+            raportStore.deleteReport(interaction.user.id);
+        }
         console.error('Błąd wykonania komendy:', error);
         if (!interaction.replied && !interaction.deferred) {
             await interaction.reply({ 

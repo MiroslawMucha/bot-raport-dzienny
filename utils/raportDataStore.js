@@ -1,10 +1,16 @@
 // Store do przechowywania danych raportów
 const raportDataStore = new Map();
+const locks = new Map(); // Dodajemy mapę blokad
 
 // Funkcje pomocnicze do zarządzania danymi
 const store = {
     // Inicjalizacja nowego raportu
     initReport: (userId, userData) => {
+        if (locks.has(userId)) {
+            throw new Error('Użytkownik już wypełnia formularz');
+        }
+        locks.set(userId, true);
+        
         const newReport = {
             userId,
             username: userData.username,
@@ -17,7 +23,8 @@ const store = {
             dieta: false,
             osobyPracujace: [],
             auto: '',
-            kierowca: ''
+            kierowca: '',
+            startTime: new Date() // Dodajemy czas rozpoczęcia
         };
         raportDataStore.set(userId, newReport);
         return newReport;
@@ -40,6 +47,20 @@ const store = {
     // Usunięcie raportu
     deleteReport: (userId) => {
         raportDataStore.delete(userId);
+        locks.delete(userId); // Zwalniamy blokadę
+    },
+
+    // Dodajemy timeout dla nieukończonych formularzy
+    cleanupStaleReports: () => {
+        const TIMEOUT = 30 * 60 * 1000; // 30 minut
+        const now = new Date();
+        
+        for (const [userId, report] of raportDataStore.entries()) {
+            if (now - report.startTime > TIMEOUT) {
+                raportDataStore.delete(userId);
+                locks.delete(userId);
+            }
+        }
     }
 };
 
