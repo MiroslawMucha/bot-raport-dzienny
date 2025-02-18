@@ -70,8 +70,26 @@ client.on('interactionCreate', async interaction => {
             await command.execute(interaction);
         } 
         else if (interaction.type === InteractionType.MessageComponent) {
-            if (interaction.customId === 'reset_form') {
+            const customId = interaction.customId;
+
+            // Obsługa przycisku reset
+            if (customId === 'reset_form') {
+                // Dodajemy logi debugowania
+                console.log('Resetowanie formularza dla użytkownika:', interaction.user.id);
+                console.log('Stan przed resetem:', {
+                    hasLock: locks.has(interaction.user.id),
+                    hasReport: raportStore.hasActiveReport(interaction.user.id)
+                });
+
+                // Wymuszamy reset
                 raportStore.resetReport(interaction.user.id);
+
+                // Sprawdzamy stan po resecie
+                console.log('Stan po resecie:', {
+                    hasLock: locks.has(interaction.user.id),
+                    hasReport: raportStore.hasActiveReport(interaction.user.id)
+                });
+
                 await interaction.update({
                     content: 'Formularz został zresetowany. Możesz teraz użyć komendy /raport aby rozpocząć od nowa.',
                     components: [],
@@ -91,7 +109,6 @@ client.on('interactionCreate', async interaction => {
                 return;
             }
 
-            const { customId } = interaction;
             let updateData = {};
 
             // Obsługa wyboru miejsca pracy, auta, osób i kierowcy
@@ -294,16 +311,21 @@ Czy chcesz wysłać raport?`,
             }
         }
     } catch (error) {
-        // Zwalniamy blokadę w przypadku błędu
+        console.error('Błąd podczas obsługi interakcji:', error);
+        // Zawsze zwalniamy blokadę w przypadku błędu
         if (interaction.user) {
-            raportStore.deleteReport(interaction.user.id);
+            raportStore.resetReport(interaction.user.id);
         }
-        console.error('Błąd wykonania komendy:', error);
-        if (!interaction.replied && !interaction.deferred) {
-            await interaction.reply({ 
-                content: 'Wystąpił błąd podczas wykonywania komendy.', 
-                ephemeral: true 
-            });
+        // Informujemy użytkownika o błędzie
+        try {
+            const errorMessage = 'Wystąpił błąd podczas przetwarzania formularza. Formularz został zresetowany.';
+            if (interaction.replied || interaction.deferred) {
+                await interaction.followUp({ content: errorMessage, ephemeral: true });
+            } else {
+                await interaction.reply({ content: errorMessage, ephemeral: true });
+            }
+        } catch (e) {
+            console.error('Błąd podczas wysyłania informacji o błędzie:', e);
         }
     }
 });

@@ -1,19 +1,22 @@
 // Store do przechowywania danych raportów
 const raportDataStore = new Map();
-const locks = new Map(); // Dodajemy mapę blokad
+const locks = new Map();
 
 // Stała określająca czas ważności formularza (5 minut)
 const FORM_TIMEOUT = 5 * 60 * 1000;
+// Interwał czyszczenia (2 minuty)
+const CLEANUP_INTERVAL = 2 * 60 * 1000;
 
 // Funkcje pomocnicze do zarządzania danymi
 const store = {
     // Inicjalizacja nowego raportu
     initReport: (userId, userData) => {
-        if (locks.has(userId)) {
-            throw new Error('Użytkownik już wypełnia formularz');
+        // Najpierw sprawdzamy i czyścimy stary raport jeśli istnieje
+        if (store.hasActiveReport(userId)) {
+            store.resetReport(userId);
         }
-        locks.set(userId, true);
-        
+
+        // Teraz możemy utworzyć nowy raport
         const newReport = {
             userId,
             username: userData.username,
@@ -27,9 +30,11 @@ const store = {
             osobyPracujace: [],
             auto: '',
             kierowca: '',
-            startTime: new Date() // Dodajemy czas rozpoczęcia
+            startTime: Date.now() // Używamy timestamp zamiast obiektu Date
         };
+        
         raportDataStore.set(userId, newReport);
+        locks.set(userId, true);
         return newReport;
     },
 
@@ -55,27 +60,37 @@ const store = {
 
     // Dodajemy timeout dla nieukończonych formularzy
     cleanupStaleReports: () => {
-        const now = new Date();
+        const now = Date.now();
+        let cleaned = 0;
         
         for (const [userId, report] of raportDataStore.entries()) {
             if (now - report.startTime > FORM_TIMEOUT) {
-                console.log(`Usuwanie przeterminowanego formularza użytkownika ${report.username}`);
-                raportDataStore.delete(userId);
-                locks.delete(userId);
+                console.log(`Czyszczenie: Usuwanie przeterminowanego formularza użytkownika ${report.username}`);
+                store.resetReport(userId);
+                cleaned++;
             }
+        }
+        
+        if (cleaned > 0) {
+            console.log(`Czyszczenie zakończone: Usunięto ${cleaned} nieaktywnych formularzy`);
         }
     },
 
     // Sprawdzenie czy użytkownik ma aktywny formularz
     hasActiveReport: (userId) => {
         const report = raportDataStore.get(userId);
-        if (!report) return false;
+        const lock = locks.get(userId);
+        
+        // Jeśli nie ma raportu lub blokady, na pewno nie jest aktywny
+        if (!report || !lock) {
+            store.resetReport(userId);
+            return false;
+        }
 
         // Sprawdź czy formularz nie wygasł
-        const now = new Date();
+        const now = Date.now();
         if (now - report.startTime > FORM_TIMEOUT) {
-            // Jeśli wygasł, usuń go
-            store.deleteReport(userId);
+            store.resetReport(userId);
             return false;
         }
 
@@ -84,13 +99,13 @@ const store = {
 
     // Wymuszony reset formularza
     resetReport: (userId) => {
-        store.deleteReport(userId);
+        console.log(`Resetowanie formularza dla użytkownika ${userId}`);
+        raportDataStore.delete(userId);
+        locks.delete(userId);
     }
 };
 
-// Uruchamiamy czyszczenie co minutę
-setInterval(() => {
-    store.cleanupStaleReports();
-}, 60 * 1000); // Co minutę
+// Uruchamiamy czyszczenie co 2 minuty
+setInterval(store.cleanupStaleReports, CLEANUP_INTERVAL);
 
 module.exports = store; 
