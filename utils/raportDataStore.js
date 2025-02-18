@@ -11,16 +11,14 @@ const CLEANUP_INTERVAL = 2 * 60 * 1000;
 const store = {
     // Inicjalizacja nowego raportu
     initReport: (userId, userData) => {
-        // Najpierw bezwarunkowo czyścimy wszystkie dane użytkownika
-        store.resetReport(userId);
-
-        console.log('Stan po resecie:', {
-            hasReport: raportDataStore.has(userId),
-            hasLock: locks.has(userId),
-            userData: userData
+        console.log('🔄 [RAPORT] Inicjalizacja nowego raportu:', {
+            krok: 'rozpoczęcie',
+            userId,
+            userData
         });
 
-        // Teraz tworzymy nowy raport
+        store.resetReport(userId);
+
         const newReport = {
             userId,
             username: userData.username,
@@ -37,14 +35,15 @@ const store = {
             startTime: Date.now()
         };
         
-        // Najpierw ustawiamy dane, potem blokadę
         raportDataStore.set(userId, newReport);
         locks.set(userId, true);
 
-        console.log('Stan po inicjalizacji:', {
-            hasReport: raportDataStore.has(userId),
-            hasLock: locks.has(userId),
-            report: newReport
+        console.log('✅ [RAPORT] Raport zainicjalizowany:', {
+            krok: 'zakończenie',
+            userId,
+            username: userData.username,
+            czasUtworzeniaRaportu: new Date(newReport.startTime).toLocaleString(),
+            czasWygasnieciaRaportu: new Date(newReport.startTime + FORM_TIMEOUT).toLocaleString()
         });
 
         return newReport;
@@ -57,9 +56,29 @@ const store = {
 
     // Aktualizacja danych raportu
     updateReport: (userId, data) => {
+        console.log('📝 [RAPORT] Aktualizacja raportu:', {
+            krok: 'rozpoczęcie',
+            userId,
+            aktualizowanePola: Object.keys(data),
+            noweWartosci: data
+        });
+
         const currentReport = raportDataStore.get(userId);
         if (currentReport) {
-            raportDataStore.set(userId, { ...currentReport, ...data });
+            const updatedReport = { ...currentReport, ...data };
+            raportDataStore.set(userId, updatedReport);
+            
+            console.log('✅ [RAPORT] Raport zaktualizowany:', {
+                krok: 'zakończenie',
+                userId,
+                username: currentReport.username,
+                poprzednieWartosci: Object.keys(data).reduce((acc, key) => {
+                    acc[key] = currentReport[key];
+                    return acc;
+                }, {}),
+                noweWartosci: data,
+                pozostalyCzas: Math.round((FORM_TIMEOUT - (Date.now() - currentReport.startTime)) / 1000) + 's'
+            });
         }
         return raportDataStore.get(userId);
     },
@@ -72,19 +91,37 @@ const store = {
 
     // Dodajemy timeout dla nieukończonych formularzy
     cleanupStaleReports: () => {
+        console.log('🧹 [CLEANUP] Rozpoczęcie czyszczenia:', {
+            krok: 'rozpoczęcie',
+            aktywneFormularze: raportDataStore.size,
+            aktywneBlokady: locks.size
+        });
+
         const now = Date.now();
         let cleaned = 0;
+        const details = [];
         
         for (const [userId, report] of raportDataStore.entries()) {
-            if (now - report.startTime > FORM_TIMEOUT) {
-                console.log(`Czyszczenie: Usuwanie przeterminowanego formularza użytkownika ${report.username}`);
+            const timeElapsed = now - report.startTime;
+            if (timeElapsed > FORM_TIMEOUT) {
+                details.push({
+                    userId,
+                    username: report.username,
+                    czasAktywnosci: Math.round(timeElapsed / 1000) + 's',
+                    przekroczenieCzasu: Math.round((timeElapsed - FORM_TIMEOUT) / 1000) + 's'
+                });
                 store.resetReport(userId);
                 cleaned++;
             }
         }
         
         if (cleaned > 0) {
-            console.log(`Czyszczenie zakończone: Usunięto ${cleaned} nieaktywnych formularzy`);
+            console.log('🚮 [CLEANUP] Zakończono czyszczenie:', {
+                krok: 'zakończenie',
+                wyczyszczoneFormularze: cleaned,
+                szczegoly: details,
+                pozostaleFormularze: raportDataStore.size
+            });
         }
     },
 
@@ -93,20 +130,18 @@ const store = {
         const report = raportDataStore.get(userId);
         const lock = locks.get(userId);
         
-        console.log('Sprawdzanie aktywnego formularza:', {
+        console.log('🔍 [RAPORT] Sprawdzanie aktywności:', {
             userId,
-            hasReport: !!report,
-            hasLock: !!lock,
-            reportTime: report?.startTime
+            maRaport: !!report,
+            maBlokade: !!lock,
+            czasAktywnosci: report ? Math.round((Date.now() - report.startTime) / 1000) + 's' : 'brak',
+            pozostalyCzas: report ? Math.round((FORM_TIMEOUT - (Date.now() - report.startTime)) / 1000) + 's' : 'brak'
         });
 
-        // Jeśli nie ma raportu LUB nie ma blokady
         if (!report || !lock) {
-            store.resetReport(userId);
             return false;
         }
 
-        // Sprawdź czy formularz nie wygasł
         const now = Date.now();
         if (now - report.startTime > FORM_TIMEOUT) {
             store.resetReport(userId);
@@ -118,24 +153,13 @@ const store = {
 
     // Wymuszony reset formularza
     resetReport: (userId) => {
-        console.log('Rozpoczynam reset formularza:', {
-            userId,
-            beforeReset: {
-                hasReport: raportDataStore.has(userId),
-                hasLock: locks.has(userId)
-            }
-        });
-
+        const hadReport = raportDataStore.has(userId);
         raportDataStore.delete(userId);
         locks.delete(userId);
 
-        console.log('Zakończono reset formularza:', {
-            userId,
-            afterReset: {
-                hasReport: raportDataStore.has(userId),
-                hasLock: locks.has(userId)
-            }
-        });
+        if (hadReport) {
+            console.log(`Reset formularza dla użytkownika ${userId}`);
+        }
     }
 };
 

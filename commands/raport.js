@@ -19,33 +19,7 @@ module.exports = {
                 username: interaction.user.username
             });
 
-            // Najpierw resetujemy stary formularz
-            raportStore.resetReport(interaction.user.id);
-
-            // Sprawdzamy czy reset się powiódł
-            if (raportStore.hasActiveReport(interaction.user.id)) {
-                console.error('Błąd: Formularz nadal aktywny po resecie:', {
-                    userId: interaction.user.id,
-                    username: interaction.user.username
-                });
-
-                const resetButton = new ActionRowBuilder()
-                    .addComponents(
-                        new ButtonBuilder()
-                            .setCustomId('reset_form')
-                            .setLabel('🔄 Zacznij od nowa')
-                            .setStyle(ButtonStyle.Danger)
-                    );
-
-                await interaction.reply({
-                    content: 'Wystąpił problem z resetowaniem formularza. Kliknij przycisk poniżej aby spróbować ponownie:',
-                    components: [resetButton],
-                    ephemeral: true
-                });
-                return;
-            }
-
-            // Teraz możemy zainicjować nowy formularz
+            // Inicjalizacja nowego formularza (zawiera reset)
             raportStore.initReport(interaction.user.id, {
                 username: interaction.user.username,
                 displayName: interaction.member.displayName,

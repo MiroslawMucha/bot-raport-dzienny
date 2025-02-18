@@ -63,10 +63,6 @@ client.on('interactionCreate', async interaction => {
             const command = client.commands.get(interaction.commandName);
             if (!command) return;
 
-            if (interaction.commandName === 'raport') {
-                raportStore.initReport(interaction.user.id, interaction.user.username);
-            }
-
             await command.execute(interaction);
         } 
         else if (interaction.type === InteractionType.MessageComponent) {
