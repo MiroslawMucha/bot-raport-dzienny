@@ -3,6 +3,11 @@ const { Client, GatewayIntentBits, Collection, InteractionType, ModalBuilder, Te
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
+console.log('🔧 [CONFIG] Zmienne środowiskowe:', {
+    TOKEN: !!process.env.TOKEN,
+    PRIVATE_CATEGORY_ID: process.env.PRIVATE_CATEGORY_ID,
+    KANAL_RAPORTY_ID: process.env.KANAL_RAPORTY_ID
+});
 console.log('Env variables loaded:', {
     tokenExists: !!process.env.TOKEN,
     tokenLength: process.env.TOKEN?.length,

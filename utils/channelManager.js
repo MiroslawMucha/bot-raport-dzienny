@@ -10,6 +10,16 @@ class ChannelManager {
     // Funkcja tworząca lub pobierająca prywatny kanał użytkownika
     async getOrCreateUserChannel(guild, user) {
         try {
+            // Dodajmy logi na początku
+            console.log('🔍 [CHANNEL] Rozpoczynam tworzenie/pobieranie kanału:', {
+                username: user.username,
+                categoryId: process.env.PRIVATE_CATEGORY_ID,
+                envVars: {
+                    hasCategoryId: !!process.env.PRIVATE_CATEGORY_ID,
+                    categoryIdLength: process.env.PRIVATE_CATEGORY_ID?.length
+                }
+            });
+
             // Sprawdzamy rate limit
             const now = Date.now();
             if (now - this.lastChannelCreation < this.rateLimitDelay) {
@@ -18,8 +28,17 @@ class ChannelManager {
                 );
             }
 
-            // Pobieramy kategorię RAPORTY używając ID z .env
+            // Pobieramy kategorię RAPORTY
             const category = guild.channels.cache.get(process.env.PRIVATE_CATEGORY_ID);
+            console.log('🔍 [CHANNEL] Próba pobrania kategorii:', {
+                znalezionoKategorie: !!category,
+                categoryId: process.env.PRIVATE_CATEGORY_ID,
+                dostepneKategorie: Array.from(guild.channels.cache.filter(ch => ch.type === ChannelType.GuildCategory).map(ch => ({
+                    id: ch.id,
+                    name: ch.name
+                })))
+            });
+
             if (!category) {
                 throw new Error('Nie znaleziono kategorii RAPORTY. Sprawdź PRIVATE_CATEGORY_ID w .env');
             }
@@ -70,11 +89,12 @@ class ChannelManager {
 
             return channel;
         } catch (error) {
-            console.error('Błąd podczas tworzenia/pobierania kanału:', {
+            console.error('❌ [CHANNEL] Błąd podczas tworzenia/pobierania kanału:', {
                 error: error.message,
                 userId: user.id,
                 username: user.username,
-                categoryId: process.env.PRIVATE_CATEGORY_ID
+                categoryId: process.env.PRIVATE_CATEGORY_ID,
+                stack: error.stack
             });
 
             if (error.code === 50013) {
