@@ -21,12 +21,37 @@
 
 ### 1. System Unikalnych Identyfikatorów
 ```javascript
-// Format: RAP-YYYYMMDD-XXX
-const raportId = 'RAP-20240315-001';
+// Format: DD-MM-YYYY-HH:MM:SS-username
+// Przykład: 15-03-2024-14:30:45-john_doe
+const dateStr = now.toLocaleString('pl-PL', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+}).replace(/[\s,]/g, '-');
 ```
-- Unikalny ID dla każdego raportu
-- Format zawierający datę i numer sekwencyjny
-- Możliwość śledzenia powiązanych wpisów
+
+**Zaimplementowane cechy:**
+- Unikalny ID dla każdego raportu w formacie data-czas-użytkownik
+- Automatyczne generowanie w strefie czasowej Polski
+- Format przyjazny dla użytkownika i łatwy do sortowania
+- Logowanie procesu generowania ID z informacją o strefie czasowej
+- Zabezpieczenie przed duplikacją wpisów
+
+**Korzyści:**
+1. Łatwa identyfikacja autora raportu
+2. Precyzyjne śledzenie czasu utworzenia
+3. Możliwość filtrowania po dacie/użytkowniku
+4. Poprawna obsługa polskiej strefy czasowej
+5. Czytelny format dla użytkowników
+
+**Przykład wpisu w arkuszu:**
+```
+ID raportu: 15-03-2024-14:30:45-jan_kowalski
+```
 
 ### 2. Powiązane Tabele
 - Tabela główna (raporty)
@@ -102,6 +127,23 @@ function CZAS_PRACY(start, koniec) {
 - Cachowanie często używanych danych
 - Indeksowanie ważnych kolumn
 - Archiwizacja starych danych
+
+## Zaimplementowane Funkcjonalności
+
+### 1. System Blokad Zapisu
+```javascript
+if (this.writeLock) {
+    console.log('⏳ Czekam na zwolnienie blokady zapisu...');
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return this.dodajRaport(raportData);
+}
+```
+
+**Zaimplementowane cechy:**
+- Blokada równoczesnych zapisów
+- Kolejkowanie żądań
+- Automatyczne ponowienie próby
+- Logowanie stanu blokady
 
 ## Przykłady Implementacji
 

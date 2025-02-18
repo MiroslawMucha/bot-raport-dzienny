@@ -67,14 +67,14 @@ class GoogleSheetsService {
                 minute: '2-digit',
                 second: '2-digit',
                 hour12: false
-            }).replace(/[\s,]/g, '--');  // Zamieniamy spacje i przecinki na --
+            }).replace(/[\s,]/g, '-');  // Zamieniamy spacje i przecinki na --
 
             console.log('🕒 Generowanie ID raportu:', {
                 czas: dateStr,
                 strefa: Intl.DateTimeFormat().resolvedOptions().timeZone
             });
 
-            return `${dateStr}--${username}`;
+            return `${dateStr}-${username}`;
         } catch (error) {
             console.error('❌ Błąd podczas generowania ID:', error);
             throw error;
