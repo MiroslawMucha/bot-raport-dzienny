@@ -16,6 +16,8 @@ class GoogleSheetsService {
             scopes: ['https://www.googleapis.com/auth/spreadsheets']
         });
         this.sheetsApi = null;
+        this.writeQueue = []; // Kolejka zapisów
+        this.processing = false;
         this.init();
     }
 
@@ -31,48 +33,77 @@ class GoogleSheetsService {
         }
     }
 
+    // Dodajemy kolejkowanie zapisów
+    async processWriteQueue() {
+        if (this.processing) return;
+        this.processing = true;
+
+        while (this.writeQueue.length > 0) {
+            const { operation, resolve, reject } = this.writeQueue.shift();
+            try {
+                const result = await operation();
+                resolve(result);
+            } catch (error) {
+                reject(error);
+            }
+            // Dodajemy małe opóźnienie między operacjami
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+
+        this.processing = false;
+    }
+
     // Dodawanie nowego raportu do arkusza
     async dodajRaport(raportData) {
-        try {
-            if (!this.sheetsApi) {
-                await this.init();
-            }
+        return new Promise((resolve, reject) => {
+            this.writeQueue.push({
+                operation: async () => {
+                    try {
+                        if (!this.sheetsApi) {
+                            await this.init();
+                        }
 
-            // Sprawdź wymagane pola
-            if (!this.validateRaportData(raportData)) {
-                throw new Error('Brakuje wymaganych danych w raporcie!');
-            }
+                        // Sprawdź wymagane pola
+                        if (!this.validateRaportData(raportData)) {
+                            throw new Error('Brakuje wymaganych danych w raporcie!');
+                        }
 
-            // Przygotuj dane do zapisu w kolejności zgodnej z arkuszem
-            const values = [[
-                new Date().toISOString(),        // Data utworzenia
-                raportData.pracownik,            // Pracownik (używamy pracownik zamiast username)
-                raportData.miejscePracy,         // Miejsce pracy (dodane)
-                raportData.czasRozpoczecia,      // Czas rozpoczęcia
-                raportData.czasZakonczenia,      // Czas zakończenia
-                raportData.dieta ? 'Tak' : 'Nie',// Dieta
-                raportData.osobyPracujace.join(', '), // Osoby pracujące
-                raportData.auto,                 // Auto
-                raportData.kierowca,             // Kierowca
-                'Aktywny'                        // Status
-            ]];
+                        // Przygotuj dane do zapisu w kolejności zgodnej z arkuszem
+                        const values = [[
+                            new Date().toISOString(),        // Data utworzenia
+                            raportData.pracownik,            // Pracownik (używamy pracownik zamiast username)
+                            raportData.miejscePracy,         // Miejsce pracy (dodane)
+                            raportData.czasRozpoczecia,      // Czas rozpoczęcia
+                            raportData.czasZakonczenia,      // Czas zakończenia
+                            raportData.dieta ? 'Tak' : 'Nie',// Dieta
+                            raportData.osobyPracujace.join(', '), // Osoby pracujące
+                            raportData.auto,                 // Auto
+                            raportData.kierowca,             // Kierowca
+                            'Aktywny'                        // Status
+                        ]];
 
-            // Zapisz do arkusza
-            const response = await this.sheetsApi.spreadsheets.values.append({
-                spreadsheetId: process.env.GOOGLE_SHEET_ID,
-                range: `${SHEET_NAME}!${SHEET_RANGE}`,
-                valueInputOption: 'USER_ENTERED',
-                resource: {
-                    values: values
-                }
+                        // Zapisz do arkusza
+                        const response = await this.sheetsApi.spreadsheets.values.append({
+                            spreadsheetId: process.env.GOOGLE_SHEET_ID,
+                            range: `${SHEET_NAME}!${SHEET_RANGE}`,
+                            valueInputOption: 'USER_ENTERED',
+                            resource: {
+                                values: values
+                            }
+                        });
+
+                        console.log('Raport zapisany pomyślnie:', response.data);
+                        return true;
+                    } catch (error) {
+                        console.error('Błąd podczas zapisywania raportu:', error);
+                        throw error;
+                    }
+                },
+                resolve,
+                reject
             });
-
-            console.log('Raport zapisany pomyślnie:', response.data);
-            return true;
-        } catch (error) {
-            console.error('Błąd podczas zapisywania raportu:', error);
-            throw error;
-        }
+            this.processWriteQueue();
+        });
     }
 
     validateRaportData(data) {
@@ -87,35 +118,44 @@ class GoogleSheetsService {
 
     // Aktualizacja istniejącego raportu
     async aktualizujRaport(rowIndex, raportData) {
-        if (!this.sheetsApi) await this.init();
+        return new Promise((resolve, reject) => {
+            this.writeQueue.push({
+                operation: async () => {
+                    if (!this.sheetsApi) await this.init();
 
-        const values = [
-            [
-                raportData.data,                 // Data
-                raportData.pracownik,            // Pracownik
-                raportData.miejscePracy,         // Miejsce pracy (dodane)
-                raportData.czasRozpoczecia,      // Czas rozpoczęcia
-                raportData.czasZakonczenia,      // Czas zakończenia
-                raportData.dieta ? 'Tak' : 'Nie',// Dieta
-                raportData.osobyPracujace.join(', '), // Osoby pracujące
-                raportData.auto,                 // Auto
-                raportData.kierowca,             // Kierowca
-                'Edytowany'                      // Status
-            ]
-        ];
+                    const values = [
+                        [
+                            raportData.data,                 // Data
+                            raportData.pracownik,            // Pracownik
+                            raportData.miejscePracy,         // Miejsce pracy (dodane)
+                            raportData.czasRozpoczecia,      // Czas rozpoczęcia
+                            raportData.czasZakonczenia,      // Czas zakończenia
+                            raportData.dieta ? 'Tak' : 'Nie',// Dieta
+                            raportData.osobyPracujace.join(', '), // Osoby pracujące
+                            raportData.auto,                 // Auto
+                            raportData.kierowca,             // Kierowca
+                            'Edytowany'                      // Status
+                        ]
+                    ];
 
-        try {
-            await this.sheetsApi.spreadsheets.values.update({
-                spreadsheetId: process.env.GOOGLE_SHEET_ID,
-                range: `${SHEET_NAME}!A${rowIndex}:J${rowIndex}`,
-                valueInputOption: 'USER_ENTERED',
-                resource: { values }
+                    try {
+                        await this.sheetsApi.spreadsheets.values.update({
+                            spreadsheetId: process.env.GOOGLE_SHEET_ID,
+                            range: `${SHEET_NAME}!A${rowIndex}:J${rowIndex}`,
+                            valueInputOption: 'USER_ENTERED',
+                            resource: { values }
+                        });
+                        return true;
+                    } catch (error) {
+                        console.error('Błąd podczas aktualizacji arkusza:', error);
+                        return false;
+                    }
+                },
+                resolve,
+                reject
             });
-            return true;
-        } catch (error) {
-            console.error('Błąd podczas aktualizacji arkusza:', error);
-            return false;
-        }
+            this.processWriteQueue();
+        });
     }
 
     // Pobranie ostatnich raportów użytkownika

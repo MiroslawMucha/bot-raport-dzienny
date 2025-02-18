@@ -5,7 +5,6 @@ const { MIEJSCA_PRACY, POJAZDY, CZAS } = require('../config/config');
 const googleSheets = require('../utils/googleSheets');
 const channelManager = require('../utils/channelManager');
 const raportStore = require('../utils/raportDataStore');
-const locks = require('../utils/locks');
 
 module.exports = {
     // Definicja komendy
@@ -176,14 +175,8 @@ async function pobierzCzlonkowSerwera(guild) {
 // Funkcja wysyłająca raport
 async function wyslijRaport(interaction, raportData) {
     try {
-        // Dodajemy sprawdzenie czy użytkownik nie ma już aktywnego formularza
-        if (locks.has(interaction.user.id)) {
-            await interaction.reply({
-                content: 'Masz już aktywny formularz. Dokończ go lub poczekaj 30 minut na reset.',
-                ephemeral: true
-            });
-            return;
-        }
+        // Sprawdzenie blokady jest już obsługiwane w initReport
+        // więc nie musimy tego robić tutaj
 
         // Dodajemy pełną nazwę do danych przed wysłaniem do Google Sheets
         const dataToSend = {
@@ -194,7 +187,7 @@ async function wyslijRaport(interaction, raportData) {
 
         console.log('Dane wysyłane do Google Sheets:', dataToSend);
 
-        // Formatowanie wiadomości raportu - przenosimy to przed try/catch
+        // Formatowanie wiadomości raportu
         const raportMessage = formatujRaport(dataToSend, false);
 
         // Zapisanie do Google Sheets

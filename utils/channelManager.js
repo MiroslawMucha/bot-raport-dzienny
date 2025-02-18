@@ -2,9 +2,22 @@
 const { ChannelType, PermissionFlagsBits } = require('discord.js');
 
 class ChannelManager {
+    constructor() {
+        this.rateLimitDelay = 1000; // 1 sekunda między tworzeniem kanałów
+        this.lastChannelCreation = 0;
+    }
+
     // Funkcja tworząca lub pobierająca prywatny kanał użytkownika
     async getOrCreateUserChannel(guild, user) {
         try {
+            // Sprawdzamy rate limit
+            const now = Date.now();
+            if (now - this.lastChannelCreation < this.rateLimitDelay) {
+                await new Promise(resolve => 
+                    setTimeout(resolve, this.rateLimitDelay - (now - this.lastChannelCreation))
+                );
+            }
+
             // Próba znalezienia istniejącego kanału
             const channelName = `raport-${user.username.toLowerCase()}`;
             let channel = guild.channels.cache.find(ch => 
@@ -23,6 +36,7 @@ class ChannelManager {
                 }
 
                 // Tworzenie nowego kanału z odpowiednimi uprawnieniami
+                this.lastChannelCreation = Date.now();
                 channel = await guild.channels.create({
                     name: channelName,
                     type: ChannelType.GuildText,
@@ -46,7 +60,13 @@ class ChannelManager {
 
             return channel;
         } catch (error) {
-            console.error('Błąd podczas tworzenia/pobierania kanału:', error);
+            if (error.code === 50013) { // Missing Permissions
+                throw new Error('Bot nie ma wymaganych uprawnień do zarządzania kanałami');
+            } else if (error.code === 50001) { // Missing Access
+                throw new Error('Bot nie ma dostępu do serwera');
+            } else if (error.code === 50035) { // Invalid Form Body
+                throw new Error('Nieprawidłowa nazwa kanału');
+            }
             throw error;
         }
     }
