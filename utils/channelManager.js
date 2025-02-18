@@ -18,28 +18,38 @@ class ChannelManager {
                 );
             }
 
-            // Próba znalezienia istniejącego kanału
+            // Pobieramy kategorię RAPORTY używając ID z .env
+            const category = guild.channels.cache.get(process.env.PRIVATE_CATEGORY_ID);
+            if (!category) {
+                throw new Error('Nie znaleziono kategorii RAPORTY. Sprawdź PRIVATE_CATEGORY_ID w .env');
+            }
+
+            // Próba znalezienia istniejącego kanału w kategorii RAPORTY
             const channelName = `raport-${user.username.toLowerCase()}`;
             let channel = guild.channels.cache.find(ch => 
-                ch.name === channelName && ch.type === ChannelType.GuildText
+                ch.name === channelName && 
+                ch.type === ChannelType.GuildText &&
+                ch.parentId === category.id // Sprawdzamy czy kanał jest w odpowiedniej kategorii
             );
 
             // Jeśli kanał nie istnieje lub bot nie ma do niego dostępu, tworzymy nowy
             if (!channel || !channel.permissionsFor(guild.members.me).has('SendMessages')) {
-                // Usuń stary kanał, jeśli istnieje ale bot nie ma do niego dostępu
+                // Usuń stary kanał, jeśli istnieje
                 if (channel) {
                     try {
                         await channel.delete();
+                        console.log(`Usunięto stary kanał dla użytkownika ${user.username}`);
                     } catch (error) {
                         console.log(`Nie można usunąć starego kanału: ${error.message}`);
                     }
                 }
 
-                // Tworzenie nowego kanału z odpowiednimi uprawnieniami
+                // Tworzenie nowego kanału w kategorii RAPORTY
                 this.lastChannelCreation = Date.now();
                 channel = await guild.channels.create({
                     name: channelName,
                     type: ChannelType.GuildText,
+                    parent: category.id, // Ustawiamy kategorię nadrzędną
                     permissionOverwrites: [
                         {
                             id: guild.id, // @everyone
@@ -55,16 +65,23 @@ class ChannelManager {
                         }
                     ]
                 });
-                console.log(`Utworzono nowy kanał dla użytkownika ${user.username}`);
+                console.log(`Utworzono nowy kanał dla użytkownika ${user.username} w kategorii RAPORTY`);
             }
 
             return channel;
         } catch (error) {
-            if (error.code === 50013) { // Missing Permissions
+            console.error('Błąd podczas tworzenia/pobierania kanału:', {
+                error: error.message,
+                userId: user.id,
+                username: user.username,
+                categoryId: process.env.PRIVATE_CATEGORY_ID
+            });
+
+            if (error.code === 50013) {
                 throw new Error('Bot nie ma wymaganych uprawnień do zarządzania kanałami');
-            } else if (error.code === 50001) { // Missing Access
-                throw new Error('Bot nie ma dostępu do serwera');
-            } else if (error.code === 50035) { // Invalid Form Body
+            } else if (error.code === 50001) {
+                throw new Error('Bot nie ma dostępu do serwera lub kategorii');
+            } else if (error.code === 50035) {
                 throw new Error('Nieprawidłowa nazwa kanału');
             }
             throw error;
