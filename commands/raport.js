@@ -286,7 +286,7 @@ function formatujRaport(raportData, isEdit = false, originalDate = null) {
 👥 **Osoby pracujące:** \`${raportData.osobyPracujace.join(', ')}\`
 🚗 **Auto:** \`${raportData.auto}\`
 🧑‍✈️ **Kierowca:** \`${raportData.kierowca}\`
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`.trim();
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`.trim();
 }
 
 // Funkcja pomocnicza do formatowania stanu formularza
