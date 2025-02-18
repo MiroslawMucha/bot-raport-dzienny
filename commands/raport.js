@@ -13,29 +13,18 @@ module.exports = {
         .setDescription('Utwórz nowy raport dzienny'),
 
     async execute(interaction) {
-        const raportData = raportStore.getReport(interaction.user.id);
+        // Inicjalizacja raportu w store
+        raportStore.initReport(interaction.user.id, interaction.user.username);
 
         // Utworzenie formularza z wyborem miejsca pracy
         const miejscaPracySelect = new StringSelectMenuBuilder()
             .setCustomId('miejsce_pracy')
             .setPlaceholder('Wybierz miejsce pracy')
             .addOptions(
-                MIEJSCA_PRACY.length >= 5 ? 
                 MIEJSCA_PRACY.map(miejsce => ({
                     label: miejsce,
                     value: miejsce
-                })) :
-                [
-                    ...MIEJSCA_PRACY.map(miejsce => ({
-                        label: miejsce,
-                        value: miejsce
-                    })),
-                    ...Array(5 - MIEJSCA_PRACY.length).fill(0).map((_, i) => ({
-                        label: `Miejsce ${MIEJSCA_PRACY.length + i + 1}`,
-                        value: `placeholder_${i}`,
-                        default: false
-                    }))
-                ]
+                }))
             );
 
         // Utworzenie formularza z wyborem pojazdu
@@ -43,50 +32,13 @@ module.exports = {
             .setCustomId('auto')
             .setPlaceholder('Wybierz pojazd')
             .addOptions(
-                POJAZDY.length >= 5 ?
                 POJAZDY.map(pojazd => ({
                     label: pojazd,
                     value: pojazd
-                })) :
-                [
-                    ...POJAZDY.map(pojazd => ({
-                        label: pojazd,
-                        value: pojazd
-                    })),
-                    ...Array(5 - POJAZDY.length).fill(0).map((_, i) => ({
-                        label: `Pojazd ${i + 1}`,
-                        value: `Pojazd ${i + 1}`
-                    }))
-                ]
+                }))
             );
 
-        // Dodaj nową funkcję do pobierania członków serwera
-        async function pobierzCzlonkowSerwera(guild) {
-            const members = await guild.members.fetch();
-            let options = members
-                .filter(member => !member.user.bot)
-                .map(member => ({
-                    label: member.displayName,
-                    value: member.displayName
-                }));
-
-            // Dodaj placeholdery tylko jeśli nie ma wystarczającej liczby członków
-            if (options.length < 5) {
-                console.log('Za mało członków, dodaję placeholdery...');
-                while (options.length < 5) {
-                    options.push({
-                        label: `Pracownik ${options.length + 1}`,
-                        value: `Pracownik ${options.length + 1}`,
-                        default: false
-                    });
-                }
-            }
-
-            console.log('Dostępne opcje:', options);
-            return options;
-        }
-
-        // W funkcji execute dodaj nowe pola formularza:
+        // Pobierz członków serwera
         const czlonkowie = await pobierzCzlonkowSerwera(interaction.guild);
 
         const osobyPracujaceSelect = new StringSelectMenuBuilder()
@@ -114,7 +66,7 @@ module.exports = {
                     .setStyle(ButtonStyle.Danger)
             );
 
-        // Dodaj przyciski czasu po dietaButtons
+        // Przyciski czasu
         const timeButtons = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
@@ -128,7 +80,8 @@ module.exports = {
             );
 
         try {
-            const response = await interaction.reply({
+            // Wysyłamy główny formularz
+            await interaction.reply({
                 content: 'Wypełnij formularz raportu:',
                 components: [
                     new ActionRowBuilder().addComponents(miejscaPracySelect),
@@ -140,63 +93,12 @@ module.exports = {
                 ephemeral: true
             });
 
-            // Dodajemy kolektor do zbierania odpowiedzi
-            const collector = response.createMessageComponentCollector({ 
-                time: 180000 // 3 minuty na wypełnienie
-            });
-
-            // Stan formularza
-            let formState = {
-                miejscePracy: '',
-                auto: '',
-                osobyPracujace: [],
-                kierowca: '',
-                dieta: null
-            };
-
-            collector.on('collect', async i => {
-                // Sprawdzamy typ interakcji
-                switch(i.customId) {
-                    case 'miejsce_pracy':
-                        formState.miejscePracy = i.values[0];
-                        break;
-                    case 'auto':
-                        formState.auto = i.values[0];
-                        break;
-                    case 'osoby_pracujace':
-                        formState.osobyPracujace = i.values;
-                        break;
-                    case 'kierowca':
-                        formState.kierowca = i.values[0];
-                        break;
-                    case 'dieta_tak':
-                        formState.dieta = true;
-                        break;
-                    case 'dieta_nie':
-                        formState.dieta = false;
-                        break;
-                }
-
-                // Aktualizujemy wiadomość z aktualnym stanem
-                await i.update({
-                    content: `**Formularz raportu:**\n${formatujStanFormularza(formState)}`,
-                    components: [
-                        new ActionRowBuilder().addComponents(miejscaPracySelect),
-                        new ActionRowBuilder().addComponents(pojazdySelect),
-                        new ActionRowBuilder().addComponents(osobyPracujaceSelect),
-                        new ActionRowBuilder().addComponents(kierowcaSelect),
-                        dietaButtons
-                    ]
-                });
-            });
-
             // Wysyłamy dodatkową wiadomość z wyborem czasu
             await interaction.followUp({
                 content: 'Ustaw czas pracy:',
                 components: [timeButtons],
                 ephemeral: true
             });
-
         } catch (error) {
             console.error('Błąd podczas wysyłania formularza:', error);
             await interaction.reply({ 
@@ -208,6 +110,17 @@ module.exports = {
     wyslijRaport,
     formatujRaport
 };
+
+// Funkcja pomocnicza do pobierania członków serwera
+async function pobierzCzlonkowSerwera(guild) {
+    const members = await guild.members.fetch();
+    return members
+        .filter(member => !member.user.bot)
+        .map(member => ({
+            label: member.displayName,
+            value: member.displayName
+        }));
+}
 
 // Funkcja wysyłająca raport
 async function wyslijRaport(interaction, raportData) {
