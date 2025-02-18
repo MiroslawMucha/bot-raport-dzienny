@@ -174,52 +174,88 @@ async function pobierzCzlonkowSerwera(guild) {
 
 // Funkcja wysyłająca raport
 async function wyslijRaport(interaction, raportData) {
-    // Dodajemy pełną nazwę do danych przed wysłaniem do Google Sheets
-    const dataToSend = {
-        ...raportData,                    // Zachowujemy wszystkie oryginalne dane
-        pracownik: raportData.globalName || raportData.displayName || raportData.username,
-        miejscePracy: raportData.miejscePracy  // Upewniamy się, że miejsce pracy jest przekazane
-    };
+    try {
+        // Dodajemy pełną nazwę do danych przed wysłaniem do Google Sheets
+        const dataToSend = {
+            ...raportData,                    // Zachowujemy wszystkie oryginalne dane
+            pracownik: raportData.globalName || raportData.displayName || raportData.username,
+            miejscePracy: raportData.miejscePracy  // Upewniamy się, że miejsce pracy jest przekazane
+        };
 
-    console.log('Dane wysyłane do Google Sheets:', dataToSend); // Dodajmy log do debugowania
+        console.log('Dane wysyłane do Google Sheets:', dataToSend); // Dodajmy log do debugowania
 
-    // Zapisanie do Google Sheets
-    const zapisano = await googleSheets.dodajRaport(dataToSend);
+        // Zapisanie do Google Sheets
+        const zapisano = await googleSheets.dodajRaport(dataToSend);
 
-    if (zapisano) {
-        // Formatowanie wiadomości raportu - przekazujemy dataToSend zamiast raportData
-        const raportMessage = formatujRaport(dataToSend, false);
+        if (zapisano) {
+            // Formatowanie wiadomości raportu - przekazujemy dataToSend zamiast raportData
+            const raportMessage = formatujRaport(dataToSend, false);
 
-        // Wysłanie na główny kanał raportów
-        const kanalRaporty = interaction.guild.channels.cache.get(process.env.KANAL_RAPORTY_ID);
-        await kanalRaporty.send(raportMessage);
+            // Wysłanie na główny kanał raportów
+            const kanalRaporty = interaction.guild.channels.cache.get(process.env.KANAL_RAPORTY_ID);
+            await kanalRaporty.send(raportMessage);
 
-        // Pobranie lub utworzenie prywatnego kanału użytkownika
-        const kanalPrywatny = await ChannelManager.getOrCreateUserChannel(
-            interaction.guild,
-            interaction.user
-        );
+            // Pobranie lub utworzenie prywatnego kanału użytkownika
+            const kanalPrywatny = await ChannelManager.getOrCreateUserChannel(
+                interaction.guild,
+                interaction.user
+            );
 
-        // Wysłanie na prywatny kanał użytkownika
-        await kanalPrywatny.send(raportMessage);
+            // Wysłanie na prywatny kanał użytkownika
+            await kanalPrywatny.send(raportMessage);
 
-        // Wysłanie potwierdzenia
+            // Wysłanie potwierdzenia
+            await interaction.followUp({
+                content: 'Raport został pomyślnie zapisany i wysłany na odpowiednie kanały!',
+                ephemeral: true
+            });
+        } else {
+            await interaction.followUp({
+                content: 'Wystąpił błąd podczas zapisywania raportu!',
+                ephemeral: true
+            });
+        }
+    } catch (error) {
+        console.error('Błąd podczas wysyłania raportu:', error);
+        
+        // Informacja dla użytkownika o problemie
+        const errorMessage = error.code === 50001 
+            ? 'Nie można wysłać raportu do twojego kanału. Tworzę nowy kanał...'
+            : 'Wystąpił błąd podczas wysyłania raportu.';
+            
         await interaction.followUp({
-            content: 'Raport został pomyślnie zapisany i wysłany na odpowiednie kanały!',
+            content: errorMessage,
             ephemeral: true
         });
-    } else {
-        await interaction.followUp({
-            content: 'Wystąpił błąd podczas zapisywania raportu!',
-            ephemeral: true
-        });
+
+        // Jeśli to błąd dostępu, spróbuj utworzyć nowy kanał
+        if (error.code === 50001) {
+            try {
+                const newChannel = await ChannelManager.getOrCreateUserChannel(
+                    interaction.guild,
+                    interaction.user,
+                    true // force create new
+                );
+                await newChannel.send(raportMessage);
+                await interaction.followUp({
+                    content: 'Utworzono nowy kanał i wysłano raport!',
+                    ephemeral: true
+                });
+            } catch (secondError) {
+                console.error('Błąd podczas tworzenia nowego kanału:', secondError);
+                await interaction.followUp({
+                    content: 'Nie udało się utworzyć nowego kanału. Skontaktuj się z administratorem.',
+                    ephemeral: true
+                });
+            }
+        }
     }
 }
 
 // Funkcja formatująca raport do wiadomości Discord
 function formatujRaport(raportData, isEdit = false, originalDate = null) {
     const header = isEdit ? 
-        `🛠 **RAPORT DZIENNY – EDYCJA** (Oryginalny wpis: ${originalDate})` :
+        `�� **RAPORT DZIENNY – EDYCJA** (Oryginalny wpis: ${originalDate})` :
         `📌 **RAPORT DZIENNY – ORYGINAŁ**`;
 
     // Wybieramy najlepszą dostępną nazwę użytkownika w kolejności:
@@ -232,10 +268,10 @@ function formatujRaport(raportData, isEdit = false, originalDate = null) {
 ━━━━
 \`${displayName}\` ${header}
 ━━━━━━━━━━━━━━━━
-👷‍♂️ **Pracownik:**
+��‍♂️ **Pracownik:**
 \`${raportData.globalName || raportData.displayName || raportData.username}\`
 
-📍 **Miejsce pracy:**
+�� **Miejsce pracy:**
 \`${raportData.miejscePracy}\`
 
 ⏳ **Czas pracy:**
