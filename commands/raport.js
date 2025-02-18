@@ -14,8 +14,21 @@ module.exports = {
 
     async execute(interaction) {
         try {
-            // Sprawdź czy użytkownik ma aktywny formularz
+            console.log('Rozpoczynam wykonanie komendy raport:', {
+                userId: interaction.user.id,
+                username: interaction.user.username
+            });
+
+            // Najpierw resetujemy stary formularz
+            raportStore.resetReport(interaction.user.id);
+
+            // Sprawdzamy czy reset się powiódł
             if (raportStore.hasActiveReport(interaction.user.id)) {
+                console.error('Błąd: Formularz nadal aktywny po resecie:', {
+                    userId: interaction.user.id,
+                    username: interaction.user.username
+                });
+
                 const resetButton = new ActionRowBuilder()
                     .addComponents(
                         new ButtonBuilder()
@@ -25,14 +38,14 @@ module.exports = {
                     );
 
                 await interaction.reply({
-                    content: 'Masz już aktywny formularz. Dokończ go, poczekaj 5 minut na reset lub kliknij przycisk poniżej aby zacząć od nowa:',
+                    content: 'Wystąpił problem z resetowaniem formularza. Kliknij przycisk poniżej aby spróbować ponownie:',
                     components: [resetButton],
                     ephemeral: true
                 });
                 return;
             }
 
-            // Inicjalizacja raportu w store
+            // Teraz możemy zainicjować nowy formularz
             raportStore.initReport(interaction.user.id, {
                 username: interaction.user.username,
                 displayName: interaction.member.displayName,
@@ -161,9 +174,10 @@ module.exports = {
                 ephemeral: true
             });
         } catch (error) {
-            console.error('Błąd podczas wysyłania formularza:', error);
-            await interaction.reply({ 
-                content: 'Wystąpił błąd podczas tworzenia formularza.', 
+            console.error('Błąd podczas wykonywania komendy raport:', error);
+            raportStore.resetReport(interaction.user.id);
+            await interaction.reply({
+                content: 'Wystąpił błąd. Spróbuj ponownie za chwilę.',
                 ephemeral: true
             });
         }

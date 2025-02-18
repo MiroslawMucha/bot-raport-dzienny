@@ -11,12 +11,16 @@ const CLEANUP_INTERVAL = 2 * 60 * 1000;
 const store = {
     // Inicjalizacja nowego raportu
     initReport: (userId, userData) => {
-        // Najpierw sprawdzamy i czyścimy stary raport jeśli istnieje
-        if (store.hasActiveReport(userId)) {
-            store.resetReport(userId);
-        }
+        // Najpierw bezwarunkowo czyścimy wszystkie dane użytkownika
+        store.resetReport(userId);
 
-        // Teraz możemy utworzyć nowy raport
+        console.log('Stan po resecie:', {
+            hasReport: raportDataStore.has(userId),
+            hasLock: locks.has(userId),
+            userData: userData
+        });
+
+        // Teraz tworzymy nowy raport
         const newReport = {
             userId,
             username: userData.username,
@@ -30,11 +34,19 @@ const store = {
             osobyPracujace: [],
             auto: '',
             kierowca: '',
-            startTime: Date.now() // Używamy timestamp zamiast obiektu Date
+            startTime: Date.now()
         };
         
+        // Najpierw ustawiamy dane, potem blokadę
         raportDataStore.set(userId, newReport);
         locks.set(userId, true);
+
+        console.log('Stan po inicjalizacji:', {
+            hasReport: raportDataStore.has(userId),
+            hasLock: locks.has(userId),
+            report: newReport
+        });
+
         return newReport;
     },
 
@@ -81,7 +93,14 @@ const store = {
         const report = raportDataStore.get(userId);
         const lock = locks.get(userId);
         
-        // Jeśli nie ma raportu lub blokady, na pewno nie jest aktywny
+        console.log('Sprawdzanie aktywnego formularza:', {
+            userId,
+            hasReport: !!report,
+            hasLock: !!lock,
+            reportTime: report?.startTime
+        });
+
+        // Jeśli nie ma raportu LUB nie ma blokady
         if (!report || !lock) {
             store.resetReport(userId);
             return false;
@@ -99,9 +118,24 @@ const store = {
 
     // Wymuszony reset formularza
     resetReport: (userId) => {
-        console.log(`Resetowanie formularza dla użytkownika ${userId}`);
+        console.log('Rozpoczynam reset formularza:', {
+            userId,
+            beforeReset: {
+                hasReport: raportDataStore.has(userId),
+                hasLock: locks.has(userId)
+            }
+        });
+
         raportDataStore.delete(userId);
         locks.delete(userId);
+
+        console.log('Zakończono reset formularza:', {
+            userId,
+            afterReset: {
+                hasReport: raportDataStore.has(userId),
+                hasLock: locks.has(userId)
+            }
+        });
     }
 };
 
