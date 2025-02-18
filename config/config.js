@@ -55,25 +55,41 @@ module.exports = {
         ],
         // Funkcja generująca godziny rozpoczęcia (od 7:00)
         getGodzinyRozpoczecia: () => {
-            return Array.from({ length: 24 }, (_, i) => {
-                const hour = (i + 7) % 24; // Zaczynamy od 7:00
-                return {
-                    label: `${String(hour).padStart(2, '0')}:00`,
-                    value: String(hour).padStart(2, '0'),
-                    default: hour === 7 // Domyślnie wybrane 7:00
-                };
-            });
+            // Najpierw dodajemy 7:00
+            const godziny = [
+                { label: '07:00', value: '07' }
+            ];
+            
+            // Następnie dodajemy pozostałe godziny
+            for (let i = 0; i < 24; i++) {
+                const hour = i;
+                if (hour !== 7) { // Pomijamy 7, bo już jest na początku
+                    godziny.push({
+                        label: `${String(hour).padStart(2, '0')}:00`,
+                        value: String(hour).padStart(2, '0')
+                    });
+                }
+            }
+            return godziny;
         },
         // Funkcja generująca godziny zakończenia (od 15:00)
         getGodzinyZakonczenia: () => {
-            return Array.from({ length: 24 }, (_, i) => {
-                const hour = (i + 15) % 24; // Zaczynamy od 15:00
-                return {
-                    label: `${String(hour).padStart(2, '0')}:00`,
-                    value: String(hour).padStart(2, '0'),
-                    default: hour === 15 // Domyślnie wybrane 15:00
-                };
-            });
+            // Najpierw dodajemy 15:00
+            const godziny = [
+                { label: '15:00', value: '15' }
+            ];
+            
+            // Następnie dodajemy pozostałe godziny
+            for (let i = 0; i < 24; i++) {
+                const hour = i;
+                if (hour !== 15) { // Pomijamy 15, bo już jest na początku
+                    godziny.push({
+                        label: `${String(hour).padStart(2, '0')}:00`,
+                        value: String(hour).padStart(2, '0')
+                    });
+                }
+            }
+            return godziny;
         },
         // Funkcja generująca daty (dziś i 20 dni wstecz)
         getDaty: () => {
