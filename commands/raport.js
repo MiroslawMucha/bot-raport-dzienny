@@ -239,39 +239,4 @@ function formatujStanFormularza(state) {
 🧑‍✈️ Kierowca: ${state.kierowca || 'nie wybrano'}
 💰 Dieta: ${state.dieta === null ? 'nie wybrano' : state.dieta ? 'Tak' : 'Nie'}
     `.trim();
-}
-
-// Funkcja pomocnicza do aktualizacji placeholderów
-function updateSelectMenu(menu, selectedValue, prefix = '') {
-    if (selectedValue) {
-        menu.setPlaceholder(`✅ Wybrano: ${selectedValue}`)
-            .setStyle('SUCCESS'); // Zmiana stylu na zielony
-    } else {
-        menu.setPlaceholder(`❌ ${prefix}Nie wybrano`)
-            .setStyle('DANGER'); // Zmiana stylu na czerwony
-    }
-    return menu;
-}
-
-// W sekcji obsługi czasu:
-await interaction.update({
-    content: `**Wybrane parametry czasu:**\n...`,
-    components: [
-        new ActionRowBuilder().addComponents(
-            updateSelectMenu(dateSelect, updatedData.selectedDate, 'Data: ')
-        ),
-        new ActionRowBuilder().addComponents(
-            updateSelectMenu(startHourSelect, 
-                updatedData.startHour ? `${updatedData.startHour}:00` : null,
-                'Godzina rozpoczęcia: '
-            )
-        ),
-        new ActionRowBuilder().addComponents(
-            updateSelectMenu(startMinuteSelect, 
-                updatedData.startMinute ? `:${updatedData.startMinute}` : null,
-                'Minuta rozpoczęcia: '
-            )
-        ),
-        // ... analogicznie dla godziny i minuty zakończenia
-    ]
-}); 
+} 
