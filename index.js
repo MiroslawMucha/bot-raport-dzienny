@@ -1,5 +1,5 @@
 // Główny plik aplikacji
-const { Client, GatewayIntentBits, Collection, InteractionType, ModalBuilder, TextInputBuilder, ActionRowBuilder, TextInputStyle, StringSelectMenuBuilder } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, InteractionType, ModalBuilder, TextInputBuilder, ActionRowBuilder, TextInputStyle, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
@@ -183,30 +183,67 @@ client.on('interactionCreate', async interaction => {
                 currentData.czasRozpoczecia && 
                 currentData.czasZakonczenia) {
                 
-                try {
-                    await interaction.followUp({
-                        content: 'Formularz wypełniony! Zapisuję raport...',
-                        ephemeral: true
-                    });
+                // Zamiast wysyłać raport, pokaż okno potwierdzenia
+                const confirmationButtons = new ActionRowBuilder()
+                    .addComponents(
+                        new ButtonBuilder()
+                            .setCustomId('wyslij_raport')
+                            .setLabel('✅ Wyślij raport')
+                            .setStyle(ButtonStyle.Success),
+                        new ButtonBuilder()
+                            .setCustomId('anuluj_raport')
+                            .setLabel('❌ Zacznij od nowa')
+                            .setStyle(ButtonStyle.Danger)
+                    );
 
-                    // Dodaj pole pracownik przed wysłaniem
+                // Pokaż podsumowanie raportu
+                await interaction.followUp({
+                    content: `**Podsumowanie raportu:**\n
+👷‍♂️ Pracownik: ${currentData.username}
+📍 Miejsce pracy: ${currentData.miejscePracy}
+⏰ Czas pracy: ${currentData.czasRozpoczecia} - ${currentData.czasZakonczenia}
+💰 Dieta / Delegacja: ${currentData.dieta ? 'Tak' : 'Nie'}
+👥 Osoby pracujące: ${currentData.osobyPracujace.join(', ')}
+🚗 Auto: ${currentData.auto}
+🧑‍✈️ Kierowca: ${currentData.kierowca}
+
+Czy chcesz wysłać raport?`,
+                    components: [confirmationButtons],
+                    ephemeral: true
+                });
+            }
+
+            // Dodaj obsługę przycisków potwierdzenia
+            else if (customId === 'wyslij_raport' || customId === 'anuluj_raport') {
+                if (customId === 'wyslij_raport') {
+                    const currentData = raportStore.getReport(interaction.user.id);
                     currentData.pracownik = currentData.username;
-
-                    await wyslijRaport(interaction, currentData);
-                    raportStore.deleteReport(interaction.user.id);
-                } catch (error) {
-                    console.error('Błąd podczas wysyłania raportu:', error);
-                    if (error.message === 'Brakuje wymaganych danych w raporcie!') {
-                        await interaction.followUp({
-                            content: 'Nie wszystkie pola są wypełnione. Upewnij się, że wprowadziłeś czas rozpoczęcia i zakończenia.',
-                            ephemeral: true
-                        });
-                    } else {
-                        await interaction.followUp({
+                    
+                    try {
+                        await wyslijRaport(interaction, currentData);
+                        // Usuń dane z store po wysłaniu
+                        raportStore.deleteReport(interaction.user.id);
+                        
+                        // Usuń wszystkie wiadomości formularza
+                        await interaction.message.delete().catch(() => {});
+                    } catch (error) {
+                        console.error('Błąd podczas wysyłania raportu:', error);
+                        await interaction.reply({
                             content: 'Wystąpił błąd podczas wysyłania raportu.',
                             ephemeral: true
                         });
                     }
+                } else {
+                    // Anuluj raport
+                    raportStore.deleteReport(interaction.user.id);
+                    
+                    // Usuń wszystkie wiadomości formularza
+                    await interaction.message.delete().catch(() => {});
+                    
+                    await interaction.reply({
+                        content: 'Raport anulowany. Użyj komendy /raport aby rozpocząć od nowa.',
+                        ephemeral: true
+                    });
                 }
             }
         }
