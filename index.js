@@ -163,53 +163,49 @@ client.on('interactionCreate', async interaction => {
                 // Aktualizuj store i wiadomość
                 const updatedData = raportStore.updateReport(interaction.user.id, timeData);
 
-                // Aktualizuj wiadomość pokazując wybrany czas
-                await interaction.update({
-                    content: `**Wybrane parametry czasu:**\n
+                // Sprawdź czy formularz jest kompletny po aktualizacji czasu
+                if (updatedData.miejscePracy && 
+                    updatedData.auto && 
+                    updatedData.osobyPracujace.length > 0 && 
+                    updatedData.kierowca &&
+                    typeof updatedData.dieta !== 'undefined' &&
+                    updatedData.czasRozpoczecia && 
+                    updatedData.czasZakonczenia) {
+                    
+                    // Pokaż okno potwierdzenia
+                    const confirmationButtons = new ActionRowBuilder()
+                        .addComponents(
+                            new ButtonBuilder()
+                                .setCustomId('wyslij_raport')
+                                .setLabel('✅ Wyślij raport')
+                                .setStyle(ButtonStyle.Success),
+                            new ButtonBuilder()
+                                .setCustomId('anuluj_raport')
+                                .setLabel('❌ Zacznij od nowa')
+                                .setStyle(ButtonStyle.Danger)
+                        );
+
+                    await interaction.update({
+                        content: `**Podsumowanie raportu:**\n
+👷‍♂️ Pracownik: ${updatedData.username}
+📍 Miejsce pracy: ${updatedData.miejscePracy}
+⏰ Czas pracy: ${updatedData.czasRozpoczecia} - ${updatedData.czasZakonczenia}
+💰 Dieta / Delegacja: ${updatedData.dieta ? 'Tak' : 'Nie'}
+👥 Osoby pracujące: ${updatedData.osobyPracujace.join(', ')}
+🚗 Auto: ${updatedData.auto}
+🧑‍✈️ Kierowca: ${updatedData.kierowca}
+
+Czy chcesz wysłać raport?`,
+                        components: [confirmationButtons]
+                    });
+                } else {
+                    // Pokaż tylko aktualizację czasu
+                    await interaction.update({
+                        content: `**Wybrane parametry czasu:**\n
 📅 Data: ${updatedData.selectedDate || 'nie wybrano'}
 ⏰ Czas rozpoczęcia: ${updatedData.czasRozpoczecia ? updatedData.czasRozpoczecia.split(' ')[1] : 'nie wybrano'}
 ⏰ Czas zakończenia: ${updatedData.czasZakonczenia ? updatedData.czasZakonczenia.split(' ')[1] : 'nie wybrano'}`,
-                    components: interaction.message.components
-                });
-            }
-
-            // Sprawdź czy formularz jest kompletny
-            const currentData = raportStore.getReport(interaction.user.id);
-            if (currentData.miejscePracy && 
-                currentData.auto && 
-                currentData.osobyPracujace.length > 0 && 
-                currentData.kierowca &&
-                typeof currentData.dieta !== 'undefined' &&
-                currentData.czasRozpoczecia && 
-                currentData.czasZakonczenia) {
-                
-                // Zamiast wysyłać raport, pokaż okno potwierdzenia
-                const confirmationButtons = new ActionRowBuilder()
-                    .addComponents(
-                        new ButtonBuilder()
-                            .setCustomId('wyslij_raport')
-                            .setLabel('✅ Wyślij raport')
-                            .setStyle(ButtonStyle.Success),
-                        new ButtonBuilder()
-                            .setCustomId('anuluj_raport')
-                            .setLabel('❌ Zacznij od nowa')
-                            .setStyle(ButtonStyle.Danger)
-                    );
-
-                // Użyj update zamiast followUp dla interakcji z komponentami
-                if (interaction.isMessageComponent()) {
-                    await interaction.update({
-                        content: `**Podsumowanie raportu:**\n
-👷‍♂️ Pracownik: ${currentData.username}
-📍 Miejsce pracy: ${currentData.miejscePracy}
-⏰ Czas pracy: ${currentData.czasRozpoczecia} - ${currentData.czasZakonczenia}
-💰 Dieta / Delegacja: ${currentData.dieta ? 'Tak' : 'Nie'}
-👥 Osoby pracujące: ${currentData.osobyPracujace.join(', ')}
-🚗 Auto: ${currentData.auto}
-🧑‍✈️ Kierowca: ${currentData.kierowca}
-
-Czy chcesz wysłać raport?`,
-                        components: [confirmationButtons],
+                        components: interaction.message.components
                     });
                 }
             }
