@@ -184,8 +184,8 @@ async function wyslijRaport(interaction, raportData) {
     const zapisano = await googleSheets.dodajRaport(dataToSend);
 
     if (zapisano) {
-        // Formatowanie wiadomości raportu
-        const raportMessage = formatujRaport(raportData, false); // false = nie jest edycją
+        // Formatowanie wiadomości raportu - przekazujemy dataToSend zamiast raportData
+        const raportMessage = formatujRaport(dataToSend, false);
 
         // Wysłanie na główny kanał raportów
         const kanalRaporty = interaction.guild.channels.cache.get(process.env.KANAL_RAPORTY_ID);
@@ -219,7 +219,10 @@ function formatujRaport(raportData, isEdit = false, originalDate = null) {
         `🛠 **RAPORT DZIENNY – EDYCJA** (Oryginalny wpis: ${originalDate})` :
         `📌 **RAPORT DZIENNY – ORYGINAŁ**`;
 
-    // Wybieramy najlepszą dostępną nazwę użytkownika
+    // Wybieramy najlepszą dostępną nazwę użytkownika w kolejności:
+    // 1. Imię i nazwisko z profilu Discord (globalName)
+    // 2. Nick na serwerze (displayName)
+    // 3. Podstawowa nazwa użytkownika (username)
     const displayName = raportData.globalName || raportData.displayName || raportData.username;
 
     return `
@@ -246,7 +249,7 @@ function formatujRaport(raportData, isEdit = false, originalDate = null) {
 
 🧑‍✈️ **Kierowca:**
 \`${raportData.kierowca}\`
-━━━━━━━━━━━━━━━━━━━━━━━━━━━`.trim();
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`.trim();
 }
 
 // Funkcja pomocnicza do formatowania stanu formularza
