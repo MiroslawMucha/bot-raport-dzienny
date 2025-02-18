@@ -57,13 +57,26 @@ class GoogleSheetsService {
     async generujNoweId(username) {
         try {
             const now = new Date();
+            
             // Format: YYYY-MM-DD--HH:MM:SS--username
-            const dateStr = now.toISOString()
-                .replace('T', '--')     // Zamiana T na --
-                .split('.')[0];         // Usuwamy milisekundy
+            const dateStr = now.toLocaleString('pl-PL', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            }).replace(/[\s,]/g, '--');  // Zamieniamy spacje i przecinki na --
+
+            console.log('🕒 Generowanie ID raportu:', {
+                czas: dateStr,
+                strefa: Intl.DateTimeFormat().resolvedOptions().timeZone
+            });
+
             return `${dateStr}--${username}`;
         } catch (error) {
-            console.error('Błąd podczas generowania ID:', error);
+            console.error('❌ Błąd podczas generowania ID:', error);
             throw error;
         }
     }
