@@ -1,7 +1,7 @@
 // Komenda /raport do tworzenia nowych raportów
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, TextInputBuilder, TextInputStyle } = require('discord.js');
-const { MIEJSCA_PRACY, POJAZDY } = require('../config/config');
+const { MIEJSCA_PRACY, POJAZDY, CZAS } = require('../config/config');
 const googleSheets = require('../utils/googleSheets');
 const ChannelManager = require('../utils/channelManager');
 const raportStore = require('../utils/raportDataStore');
@@ -81,18 +81,35 @@ module.exports = {
                     .setStyle(ButtonStyle.Danger)
             );
 
-        // Przyciski czasu
-        const timeButtons = new ActionRowBuilder()
-            .addComponents(
-                new ButtonBuilder()
-                    .setCustomId('czas_rozpoczecia')
-                    .setLabel('⏰ Ustaw czas rozpoczęcia')
-                    .setStyle(ButtonStyle.Primary),
-                new ButtonBuilder()
-                    .setCustomId('czas_zakonczenia')
-                    .setLabel('⏰ Ustaw czas zakończenia')
-                    .setStyle(ButtonStyle.Primary)
-            );
+        // Tworzenie menu wyboru daty
+        const dateSelect = new StringSelectMenuBuilder()
+            .setCustomId('data_raportu')
+            .setPlaceholder('Wybierz datę')
+            .addOptions(CZAS.getDaty());
+
+        // Tworzenie menu wyboru godziny rozpoczęcia
+        const startHourSelect = new StringSelectMenuBuilder()
+            .setCustomId('godzina_rozpoczecia')
+            .setPlaceholder('Wybierz godzinę rozpoczęcia')
+            .addOptions(CZAS.getGodziny());
+
+        // Tworzenie menu wyboru minuty rozpoczęcia
+        const startMinuteSelect = new StringSelectMenuBuilder()
+            .setCustomId('minuta_rozpoczecia')
+            .setPlaceholder('Wybierz minutę rozpoczęcia')
+            .addOptions(CZAS.MINUTY);
+
+        // Tworzenie menu wyboru godziny zakończenia
+        const endHourSelect = new StringSelectMenuBuilder()
+            .setCustomId('godzina_zakonczenia')
+            .setPlaceholder('Wybierz godzinę zakończenia')
+            .addOptions(CZAS.getGodziny());
+
+        // Tworzenie menu wyboru minuty zakończenia
+        const endMinuteSelect = new StringSelectMenuBuilder()
+            .setCustomId('minuta_zakonczenia')
+            .setPlaceholder('Wybierz minutę zakończenia')
+            .addOptions(CZAS.MINUTY);
 
         try {
             // Modyfikacja wysyłania odpowiedzi
@@ -110,9 +127,15 @@ module.exports = {
 
             // Wysyłamy dodatkową wiadomość z wyborem czasu
             await interaction.followUp({
-                content: 'Ustaw czas pracy:',
-                components: [timeButtons],
-                flags: ['Ephemeral'] // Zamiast ephemeral: true
+                content: 'Wybierz czas pracy:',
+                components: [
+                    new ActionRowBuilder().addComponents(dateSelect),
+                    new ActionRowBuilder().addComponents(startHourSelect),
+                    new ActionRowBuilder().addComponents(startMinuteSelect),
+                    new ActionRowBuilder().addComponents(endHourSelect),
+                    new ActionRowBuilder().addComponents(endMinuteSelect)
+                ],
+                ephemeral: true
             });
         } catch (error) {
             console.error('Błąd podczas wysyłania formularza:', error);
