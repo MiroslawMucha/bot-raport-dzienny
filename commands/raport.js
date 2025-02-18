@@ -277,7 +277,7 @@ function formatujRaport(raportData, isEdit = false, originalDate = null) {
 ━━━━
 📌**\`${displayName}\`** ${header}
 ━━━━━━━━━━━━━━━━
-📅 **${dataRaportu}** //‍✈️ **Pracownik:** \`${raportData.globalName || raportData.displayName || raportData.username}\`
+📅 **${dataRaportu}**     
 ⏳ **Czas pracy:**
 \`${raportData.czasRozpoczecia} - ${raportData.czasZakonczenia}\`
 
