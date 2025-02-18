@@ -212,6 +212,125 @@ class GoogleSheetsService {
             return [];
         }
     }
+
+    async getEditableReports(username, daysBack = 7) {
+        if (!this.sheetsApi) await this.init();
+        
+        try {
+            const response = await this.sheetsApi.spreadsheets.values.get({
+                spreadsheetId: process.env.GOOGLE_SHEET_ID,
+                range: `${SHEET_NAME}!${SHEET_RANGE}`
+            });
+
+            const rows = response.data.values || [];
+            const currentDate = new Date();
+            const sevenDaysAgo = new Date(currentDate - (daysBack * 24 * 60 * 60 * 1000));
+
+            return rows
+                .filter(row => {
+                    const [raportId] = row;
+                    const reportUsername = raportId.split('-').pop();
+                    const reportDate = new Date(raportId.split('-').slice(0,3).join('-'));
+                    
+                    return reportUsername === username && 
+                           reportDate >= sevenDaysAgo &&
+                           row[9] === 'Aktywny'; // Status
+                })
+                .map((row, index) => ({
+                    rowIndex: rows.indexOf(row) + 1,
+                    raportId: row[0],
+                    pracownik: row[1],
+                    miejscePracy: row[2],
+                    czasRozpoczecia: row[3],
+                    czasZakonczenia: row[4],
+                    dieta: row[5] === 'Tak',
+                    osobyPracujace: row[6].split(', '),
+                    auto: row[7],
+                    kierowca: row[8],
+                    status: row[9]
+                }));
+        } catch (error) {
+            console.error('❌ Błąd podczas pobierania raportów do edycji:', error);
+            throw error;
+        }
+    }
+
+    async updateReport(rowIndex, newData, username) {
+        if (!this.sheetsApi) await this.init();
+
+        if (this.writeLock) {
+            console.log('⏳ Czekam na zwolnienie blokady zapisu...');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            return this.updateReport(rowIndex, newData, username);
+        }
+
+        this.writeLock = true;
+        try {
+            // Pobierz obecne dane
+            const currentData = await this.sheetsApi.spreadsheets.values.get({
+                spreadsheetId: process.env.GOOGLE_SHEET_ID,
+                range: `${SHEET_NAME}!${rowIndex}:${rowIndex}`
+            });
+
+            const values = [[
+                currentData.data.values[0][0],  // Zachowujemy oryginalne ID
+                newData.pracownik,
+                newData.miejscePracy,
+                newData.czasRozpoczecia,
+                newData.czasZakonczenia,
+                newData.dieta ? 'Tak' : 'Nie',
+                newData.osobyPracujace.join(', '),
+                newData.auto,
+                newData.kierowca,
+                'Edytowany'  // Zmieniamy status na "Edytowany"
+            ]];
+
+            // Aktualizuj wiersz
+            await this.sheetsApi.spreadsheets.values.update({
+                spreadsheetId: process.env.GOOGLE_SHEET_ID,
+                range: `${SHEET_NAME}!A${rowIndex}:J${rowIndex}`,
+                valueInputOption: 'USER_ENTERED',
+                resource: { values }
+            });
+
+            // Zapisz historię edycji
+            await this.saveEditHistory(currentData.data.values[0], values[0], username);
+
+            console.log(`✅ Zaktualizowano raport w wierszu ${rowIndex}`);
+            return true;
+        } catch (error) {
+            console.error('❌ Błąd podczas aktualizacji raportu:', error);
+            return false;
+        } finally {
+            this.writeLock = false;
+        }
+    }
+
+    async saveEditHistory(oldValues, newValues, username) {
+        const now = new Date();
+        const historyValues = [[
+            oldValues[0],  // ID oryginalnego raportu
+            now.toLocaleString('pl-PL'),
+            username,
+            this.getChangedFields(oldValues, newValues).join(', '),
+            JSON.stringify(oldValues),
+            JSON.stringify(newValues)
+        ]];
+
+        await this.sheetsApi.spreadsheets.values.append({
+            spreadsheetId: process.env.GOOGLE_SHEET_ID,
+            range: 'Historia_Zmian!A:F',
+            valueInputOption: 'USER_ENTERED',
+            resource: { values: historyValues }
+        });
+    }
+
+    getChangedFields(oldValues, newValues) {
+        const fields = ['pracownik', 'miejscePracy', 'czasRozpoczecia', 
+                       'czasZakonczenia', 'dieta', 'osobyPracujace', 
+                       'auto', 'kierowca'];
+        return fields.filter((_, index) => oldValues[index + 1] !== newValues[index + 1]);
+    }
 }
 
 module.exports = new GoogleSheetsService(); 

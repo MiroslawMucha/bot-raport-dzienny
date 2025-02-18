@@ -73,6 +73,28 @@ client.on('interactionCreate', async interaction => {
         else if (interaction.type === InteractionType.MessageComponent) {
             const customId = interaction.customId;
 
+            if (customId === 'select_raport_to_edit') {
+                const selectedRowIndex = interaction.values[0];
+                const editableReports = await googleSheets.getEditableReports(
+                    interaction.user.username,
+                    7
+                );
+                
+                const selectedReport = editableReports.find(
+                    r => r.rowIndex.toString() === selectedRowIndex
+                );
+
+                if (selectedReport) {
+                    const editSession = raportStore.initEditSession(interaction.user.id, selectedReport);
+                    await handleBasicEdit(interaction, editSession);
+                } else {
+                    await interaction.reply({
+                        content: '❌ Nie znaleziono wybranego raportu.',
+                        ephemeral: true
+                    });
+                }
+            }
+
             // Obsługa przycisku reset
             if (customId === 'reset_form') {
                 // Dodajemy logi debugowania
@@ -308,6 +330,50 @@ Czy chcesz wysłać raport?`,
                         content: 'Raport anulowany. Użyj komendy /raport aby rozpocząć od nowa.',
                         components: [] // Usuń przyciski
                     });
+                }
+            }
+
+            // W sekcji obsługi interakcji komponentów
+            else if (customId === 'edit_czas') {
+                const editSession = raportStore.getReport(interaction.user.id);
+                if (editSession) {
+                    await handleCzasEdit(interaction, editSession);
+                }
+            }
+            else if (customId === 'edit_osoby') {
+                const editSession = raportStore.getReport(interaction.user.id);
+                if (editSession) {
+                    await handleOsobyEdit(interaction, editSession);
+                }
+            }
+            else if (customId === 'save_edit') {
+                const editSession = raportStore.getReport(interaction.user.id);
+                if (editSession) {
+                    await validateAndSaveChanges(interaction, editSession);
+                }
+            }
+
+            // Obsługa przycisków nawigacji
+            else if (customId.startsWith('edit_')) {
+                const editSession = raportStore.getReport(interaction.user.id);
+                if (!editSession) {
+                    await interaction.reply({
+                        content: 'Sesja edycji wygasła. Użyj ponownie komendy /edytuj_raport',
+                        ephemeral: true
+                    });
+                    return;
+                }
+
+                switch (customId) {
+                    case 'edit_osoby':
+                        await handleOsobyEdit(interaction, editSession);
+                        break;
+                    case 'edit_czas':
+                        await handleCzasEdit(interaction, editSession);
+                        break;
+                    case 'edit_podstawowe':
+                        await handleBasicEdit(interaction, editSession);
+                        break;
                 }
             }
         }

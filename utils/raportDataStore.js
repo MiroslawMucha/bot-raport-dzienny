@@ -173,6 +173,17 @@ const store = {
         if (hadReport) {
             console.log(`Reset formularza dla użytkownika ${userId}`);
         }
+    },
+
+    initEditSession: (userId, originalRaportData) => {
+        const editSession = {
+            ...originalRaportData,
+            startTime: Date.now(),
+            isEditing: true,
+            originalRaportId: originalRaportData.raportId
+        };
+        raportDataStore.set(userId, editSession);
+        return editSession;
     }
 };
 

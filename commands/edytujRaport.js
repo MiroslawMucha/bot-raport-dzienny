@@ -5,57 +5,139 @@ const { MIEJSCA_PRACY, POJAZDY } = require('../config/config');
 const googleSheets = require('../utils/googleSheets');
 const ChannelManager = require('../utils/channelManager');
 const { pobierzCzlonkowSerwera } = require('../utils/timeValidation');
+const raportStore = require('../utils/raportDataStore');
+
+// Stałe dla etapów edycji
+const EDIT_STAGES = {
+    BASIC: 'podstawowe',
+    PEOPLE: 'osoby',
+    TIME: 'czas',
+    CONFIRM: 'potwierdzenie'
+};
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('edytuj_raport')
-        .setDescription('Edytuj jeden z ostatnich raportów'),
+        .setDescription('Edytuj swój raport z ostatnich 7 dni'),
 
     async execute(interaction) {
-        // Pobranie ostatnich raportów użytkownika
-        const raporty = await googleSheets.pobierzOstatnieRaporty(interaction.user.tag);
+        try {
+            if (raportStore.hasActiveReport(interaction.user.id)) {
+                await interaction.reply({
+                    content: '⚠️ Masz już aktywny formularz! Zakończ go przed rozpoczęciem edycji.',
+                    ephemeral: true
+                });
+                return;
+            }
 
-        if (raporty.length === 0) {
-            return interaction.reply({
-                content: 'Nie znaleziono żadnych raportów do edycji!',
+            const editableReports = await googleSheets.getEditableReports(
+                interaction.user.username,
+                7
+            );
+
+            if (editableReports.length === 0) {
+                await interaction.reply({
+                    content: '❌ Nie znaleziono raportów do edycji z ostatnich 7 dni.',
+                    ephemeral: true
+                });
+                return;
+            }
+
+            // Lista raportów do wyboru
+            const selectMenu = new StringSelectMenuBuilder()
+                .setCustomId('select_raport_to_edit')
+                .setPlaceholder('Wybierz raport do edycji')
+                .addOptions(editableReports.map(raport => ({
+                    label: `${raport.data} - ${raport.miejscePracy}`,
+                    description: `${raport.czasRozpoczecia} - ${raport.czasZakonczenia}`,
+                    value: raport.rowIndex.toString()
+                })));
+
+            const row = new ActionRowBuilder().addComponents(selectMenu);
+
+            await interaction.reply({
+                content: '📝 Wybierz raport do edycji:',
+                components: [row],
+                ephemeral: true
+            });
+
+        } catch (error) {
+            console.error('❌ Błąd podczas inicjowania edycji:', error);
+            await interaction.reply({
+                content: '❌ Wystąpił błąd podczas inicjowania edycji.',
                 ephemeral: true
             });
         }
-
-        // Utworzenie menu wyboru raportu do edycji
-        const selectMenu = new StringSelectMenuBuilder()
-            .setCustomId('wybor_raportu')
-            .setPlaceholder('Wybierz raport do edycji')
-            .addOptions(
-                raporty.map((raport, index) => ({
-                    label: `Raport z ${raport.data}`,
-                    description: `${raport.miejscePracy} (${raport.czasRozpoczecia} - ${raport.czasZakonczenia})`,
-                    value: raport.rowIndex.toString()
-                }))
-            );
-
-        await interaction.reply({
-            content: 'Wybierz raport do edycji:',
-            components: [new ActionRowBuilder().addComponents(selectMenu)],
-            ephemeral: true
-        });
-
-        // Kolektor do obsługi wyboru raportu
-        const filter = i => i.user.id === interaction.user.id;
-        const collector = interaction.channel.createMessageComponentCollector({
-            filter,
-            time: 60000 // 1 minuta na wybór
-        });
-
-        collector.on('collect', async i => {
-            const wybranyRaport = raporty.find(r => r.rowIndex.toString() === i.values[0]);
-            if (wybranyRaport) {
-                collector.stop();
-                await rozpocznijEdycje(interaction, wybranyRaport);
-            }
-        });
     }
 };
+
+// Funkcje pomocnicze do obsługi etapów edycji
+async function handleBasicEdit(interaction, editSession) {
+    const components = [];
+
+    // Max 5 komponentów na wiadomość w Discord
+    components.push(new ActionRowBuilder().addComponents(
+        new StringSelectMenuBuilder()
+            .setCustomId('miejsce_pracy')
+            .setPlaceholder('Zmień miejsce pracy')
+            .addOptions(MIEJSCA_PRACY.map(miejsce => ({
+                label: miejsce,
+                value: miejsce,
+                default: miejsce === editSession.miejscePracy
+            })))
+    ));
+
+    components.push(new ActionRowBuilder().addComponents(
+        new StringSelectMenuBuilder()
+            .setCustomId('auto')
+            .setPlaceholder('Zmień auto')
+            .addOptions(POJAZDY.map(auto => ({
+                label: auto,
+                value: auto,
+                default: auto === editSession.auto
+            })))
+    ));
+
+    // Przyciski dieta i nawigacja
+    components.push(new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId('dieta_tak')
+            .setLabel('Dieta: Tak')
+            .setStyle(editSession.dieta ? ButtonStyle.Success : ButtonStyle.Secondary),
+        new ButtonBuilder()
+            .setCustomId('dieta_nie')
+            .setLabel('Dieta: Nie')
+            .setStyle(!editSession.dieta ? ButtonStyle.Danger : ButtonStyle.Secondary)
+    ));
+
+    // Przyciski nawigacji
+    components.push(new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId('edit_osoby')
+            .setLabel('➡️ Osoby')
+            .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+            .setCustomId('edit_czas')
+            .setLabel('⏰ Czas')
+            .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+            .setCustomId('cancel_edit')
+            .setLabel('❌ Anuluj')
+            .setStyle(ButtonStyle.Danger)
+    ));
+
+    await interaction.update({
+        content: formatujStanEdycji(editSession, EDIT_STAGES.BASIC),
+        components: components,
+        ephemeral: true
+    });
+}
+
+// Eksportujemy funkcje do użycia w index.js
+module.exports.handleBasicEdit = handleBasicEdit;
+module.exports.handleOsobyEdit = handleOsobyEdit;
+module.exports.handleCzasEdit = handleCzasEdit;
+module.exports.validateAndSaveChanges = validateAndSaveChanges;
 
 // Funkcja rozpoczynająca proces edycji raportu
 async function rozpocznijEdycje(interaction, raport) {
@@ -264,20 +346,212 @@ async function rozpocznijEdycje(interaction, raport) {
     });
 }
 
-// Funkcja formatująca raport
+// Funkcja formatująca raport (taka sama jak w raport.js)
 function formatujRaport(raportData, isEdit = false, originalDate = null) {
     const header = isEdit ? 
-        `🛠 **RAPORT DZIENNY – EDYCJA** (Oryginalny wpis: ${originalDate})` :
-        `📌 **RAPORT DZIENNY – ORYGINAŁ**`;
+        ` RAPORT DZIENNY – EDYCJA (Oryginalny wpis: ${originalDate})` :
+        ` RAPORT DZIENNY – ORYGINAŁ`;
 
+    const displayName = raportData.globalName || raportData.displayName || raportData.username;
+    
     return `
-${header}
-👷‍♂️ Pracownik: ${raportData.pracownik}
-📍 Miejsce pracy: ${raportData.miejscePracy}
-⏳ Czas pracy: ${raportData.czasRozpoczecia} - ${raportData.czasZakonczenia}
-💰 Dieta / Delegacja: ${raportData.dieta ? 'Tak' : 'Nie'}
-👥 Osoby pracujące: ${raportData.osobyPracujace.join(', ')}
-🚗 Auto: ${raportData.auto}
-🧑‍✈️ Kierowca: ${raportData.kierowca}
-    `.trim();
+━━━━
+📌**\`${displayName}\`** ${header}
+━━━━━━━━━━━━━━━━
+📅 **${raportData.data}**     
+⏳ **Czas pracy:**
+\`${raportData.czasRozpoczecia} - ${raportData.czasZakonczenia}\`
+
+🏢 **Miejsce pracy:** \`${raportData.miejscePracy}\`
+💰 **Dieta / Delegacja:** \`${raportData.dieta ? 'Tak' : 'Nie'}\`
+👥 **Osoby pracujące:** \`${raportData.osobyPracujace.join(', ')}\`
+🚗 **Auto:** \`${raportData.auto}\`
+🧑‍✈️ **Kierowca:** \`${raportData.kierowca}\`
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`.trim();
+}
+
+// Funkcja walidacji zmian przed zapisem
+async function validateAndSaveChanges(interaction, editSession) {
+    try {
+        // 1. Walidacja czasu
+        if (editSession.czasRozpoczecia && editSession.czasZakonczenia) {
+            const [startH, startM] = editSession.czasRozpoczecia.split(':').map(Number);
+            const [endH, endM] = editSession.czasZakonczenia.split(':').map(Number);
+            
+            if (endH * 60 + endM <= startH * 60 + startM) {
+                throw new Error('Czas zakończenia musi być późniejszy niż czas rozpoczęcia!');
+            }
+        }
+
+        // 2. Walidacja wymaganych pól
+        const requiredFields = ['miejscePracy', 'auto', 'kierowca', 'osobyPracujace'];
+        const missingFields = requiredFields.filter(field => !editSession[field]);
+        
+        if (missingFields.length > 0) {
+            throw new Error(`Brakujące pola: ${missingFields.join(', ')}`);
+        }
+
+        // 3. Zapisz zmiany
+        const saved = await googleSheets.updateReport(
+            editSession.rowIndex,
+            editSession,
+            interaction.user.username
+        );
+
+        if (saved) {
+            await interaction.update({
+                content: '✅ Zmiany zostały zapisane pomyślnie!',
+                components: [],
+                ephemeral: true
+            });
+            
+            // Wyślij zaktualizowany raport na kanał
+            const channel = interaction.guild.channels.cache.get(process.env.KANAL_RAPORTY_ID);
+            if (channel) {
+                await channel.send(formatujRaport(editSession, true, editSession.data));
+            }
+        } else {
+            throw new Error('Nie udało się zapisać zmian');
+        }
+
+    } catch (error) {
+        await interaction.reply({
+            content: `❌ Błąd: ${error.message}`,
+            ephemeral: true
+        });
+    }
+}
+
+// Funkcja do obsługi drugiego etapu - wybór osób
+async function handleOsobyEdit(interaction, editSession) {
+    const components = [];
+    const czlonkowie = await pobierzCzlonkowSerwera(interaction.guild);
+
+    // 1. Osoby pracujące
+    const osobySelect = new StringSelectMenuBuilder()
+        .setCustomId('osoby_pracujace')
+        .setPlaceholder('Zmień osoby pracujące')
+        .setMinValues(1)
+        .setMaxValues(Math.min(czlonkowie.length, 25))
+        .addOptions(czlonkowie.map(czlonek => ({
+            ...czlonek,
+            default: editSession.osobyPracujace.includes(czlonek.value)
+        })));
+    components.push(new ActionRowBuilder().addComponents(osobySelect));
+
+    // 2. Kierowca
+    const kierowcaSelect = new StringSelectMenuBuilder()
+        .setCustomId('kierowca')
+        .setPlaceholder('Zmień kierowcę')
+        .addOptions(czlonkowie.map(czlonek => ({
+            ...czlonek,
+            default: editSession.kierowca === czlonek.value
+        })));
+    components.push(new ActionRowBuilder().addComponents(kierowcaSelect));
+
+    // 3. Przyciski nawigacji
+    const navigationButtons = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId('edit_podstawowe')
+                .setLabel('⬅️ Wróć')
+                .setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder()
+                .setCustomId('save_edit')
+                .setLabel('💾 Zapisz zmiany')
+                .setStyle(ButtonStyle.Success)
+        );
+    components.push(navigationButtons);
+
+    await interaction.update({
+        content: formatujStanEdycji(editSession, 'osoby'),
+        components: components,
+        ephemeral: true
+    });
+}
+
+// Funkcja do obsługi etapu edycji czasu
+async function handleCzasEdit(interaction, editSession) {
+    const components = [];
+
+    // 1. Wybór godziny rozpoczęcia
+    const godzinaRozpoczeciaSelect = new StringSelectMenuBuilder()
+        .setCustomId('godzina_rozpoczecia')
+        .setPlaceholder('Godzina rozpoczęcia')
+        .addOptions(Array.from({ length: 24 }, (_, i) => ({
+            label: `${i.toString().padStart(2, '0')}:00`,
+            value: i.toString().padStart(2, '0'),
+            default: editSession.czasRozpoczecia?.split(':')[0] === i.toString().padStart(2, '0')
+        })));
+    components.push(new ActionRowBuilder().addComponents(godzinaRozpoczeciaSelect));
+
+    // 2. Wybór minuty rozpoczęcia
+    const minutaRozpoczeciaSelect = new StringSelectMenuBuilder()
+        .setCustomId('minuta_rozpoczecia')
+        .setPlaceholder('Minuta rozpoczęcia')
+        .addOptions(['00', '15', '30', '45'].map(min => ({
+            label: min,
+            value: min,
+            default: editSession.czasRozpoczecia?.split(':')[1] === min
+        })));
+    components.push(new ActionRowBuilder().addComponents(minutaRozpoczeciaSelect));
+
+    // 3. Wybór godziny zakończenia
+    const godzinaZakonczeniaSelect = new StringSelectMenuBuilder()
+        .setCustomId('godzina_zakonczenia')
+        .setPlaceholder('Godzina zakończenia')
+        .addOptions(Array.from({ length: 24 }, (_, i) => ({
+            label: `${i.toString().padStart(2, '0')}:00`,
+            value: i.toString().padStart(2, '0'),
+            default: editSession.czasZakonczenia?.split(':')[0] === i.toString().padStart(2, '0')
+        })));
+    components.push(new ActionRowBuilder().addComponents(godzinaZakonczeniaSelect));
+
+    // 4. Przyciski nawigacji
+    const navigationButtons = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId('edit_podstawowe')
+                .setLabel('⬅️ Wróć')
+                .setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder()
+                .setCustomId('save_edit')
+                .setLabel('💾 Zapisz zmiany')
+                .setStyle(ButtonStyle.Success)
+        );
+    components.push(navigationButtons);
+
+    await interaction.update({
+        content: formatujStanEdycji(editSession, 'czas'),
+        components: components,
+        ephemeral: true
+    });
+}
+
+// Rozszerzamy funkcję formatującą stan o różne etapy
+function formatujStanEdycji(editSession, stage) {
+    const baseInfo = `**Edycja raportu z ${editSession.data}**\n\n`;
+    
+    let stageInfo = '';
+    switch(stage) {
+        case 'podstawowe':
+            stageInfo = '📝 Edycja podstawowych informacji:\n';
+            break;
+        case 'osoby':
+            stageInfo = '👥 Edycja osób pracujących:\n';
+            break;
+        case 'czas':
+            stageInfo = '⏰ Edycja czasu pracy:\n';
+            break;
+    }
+
+    const currentState = `
+🏢 Miejsce pracy: \`${editSession.miejscePracy}\`
+🚗 Auto: \`${editSession.auto}\`
+👥 Osoby pracujące: \`${editSession.osobyPracujace.join(', ')}\`
+🧑‍✈️ Kierowca: \`${editSession.kierowca}\`
+💰 Dieta: \`${editSession.dieta ? 'Tak' : 'Nie'}\`
+⏰ Czas pracy: \`${editSession.czasRozpoczecia} - ${editSession.czasZakonczenia}\``;
+
+    return `${baseInfo}${stageInfo}${currentState}`.trim();
 } 
