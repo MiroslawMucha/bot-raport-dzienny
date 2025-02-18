@@ -41,17 +41,32 @@ module.exports = {
         // Pobierz członków serwera
         const czlonkowie = await pobierzCzlonkowSerwera(interaction.guild);
 
+        // Dodajmy funkcję pomocniczą do uzupełniania opcji do minimum 5
+        function uzupelnijOpcjeDoMinimum(opcje, prefix = 'Opcja') {
+            const wynik = [...opcje];
+            while (wynik.length < 5) {
+                wynik.push({
+                    label: `${prefix} ${wynik.length + 1}`,
+                    value: `${prefix.toLowerCase()}_${wynik.length + 1}`,
+                    default: false
+                });
+            }
+            return wynik;
+        }
+
+        // Modyfikacja menu wyboru osób pracujących
         const osobyPracujaceSelect = new StringSelectMenuBuilder()
             .setCustomId('osoby_pracujace')
             .setPlaceholder('Wybierz osoby pracujące')
             .setMinValues(1)
             .setMaxValues(5)
-            .addOptions(czlonkowie);
+            .addOptions(uzupelnijOpcjeDoMinimum(czlonkowie, 'Pracownik'));
 
+        // Modyfikacja menu wyboru kierowcy
         const kierowcaSelect = new StringSelectMenuBuilder()
             .setCustomId('kierowca')
             .setPlaceholder('Wybierz kierowcę')
-            .addOptions(czlonkowie);
+            .addOptions(uzupelnijOpcjeDoMinimum(czlonkowie, 'Kierowca'));
 
         // Przyciski do wyboru diety
         const dietaButtons = new ActionRowBuilder()
@@ -80,7 +95,7 @@ module.exports = {
             );
 
         try {
-            // Wysyłamy główny formularz
+            // Modyfikacja wysyłania odpowiedzi
             await interaction.reply({
                 content: 'Wypełnij formularz raportu:',
                 components: [
@@ -90,20 +105,20 @@ module.exports = {
                     new ActionRowBuilder().addComponents(kierowcaSelect),
                     dietaButtons
                 ],
-                ephemeral: true
+                flags: ['Ephemeral'] // Zamiast ephemeral: true
             });
 
             // Wysyłamy dodatkową wiadomość z wyborem czasu
             await interaction.followUp({
                 content: 'Ustaw czas pracy:',
                 components: [timeButtons],
-                ephemeral: true
+                flags: ['Ephemeral'] // Zamiast ephemeral: true
             });
         } catch (error) {
             console.error('Błąd podczas wysyłania formularza:', error);
             await interaction.reply({ 
                 content: 'Wystąpił błąd podczas tworzenia formularza.', 
-                ephemeral: true 
+                flags: ['Ephemeral'] // Zamiast ephemeral: true
             });
         }
     },
