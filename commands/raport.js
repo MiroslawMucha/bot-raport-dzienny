@@ -176,9 +176,12 @@ async function pobierzCzlonkowSerwera(guild) {
 async function wyslijRaport(interaction, raportData) {
     // Dodajemy pełną nazwę do danych przed wysłaniem do Google Sheets
     const dataToSend = {
-        ...raportData,
-        pracownik: raportData.globalName || raportData.displayName || raportData.username
+        ...raportData,                    // Zachowujemy wszystkie oryginalne dane
+        pracownik: raportData.globalName || raportData.displayName || raportData.username,
+        miejscePracy: raportData.miejscePracy  // Upewniamy się, że miejsce pracy jest przekazane
     };
+
+    console.log('Dane wysyłane do Google Sheets:', dataToSend); // Dodajmy log do debugowania
 
     // Zapisanie do Google Sheets
     const zapisano = await googleSheets.dodajRaport(dataToSend);
