@@ -3,7 +3,7 @@ const { SlashCommandBuilder } = require('@discordjs/builders');
 const { ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, TextInputBuilder, TextInputStyle } = require('discord.js');
 const { MIEJSCA_PRACY, POJAZDY, CZAS } = require('../config/config');
 const googleSheets = require('../utils/googleSheets');
-const ChannelManager = require('../utils/channelManager');
+const channelManager = require('../utils/channelManager');
 const raportStore = require('../utils/raportDataStore');
 
 module.exports = {
@@ -196,7 +196,7 @@ async function wyslijRaport(interaction, raportData) {
             await kanalRaporty.send(raportMessage);
 
             // Pobranie lub utworzenie prywatnego kanału użytkownika
-            const kanalPrywatny = await ChannelManager.getOrCreateUserChannel(
+            const kanalPrywatny = await channelManager.getOrCreateUserChannel(
                 interaction.guild,
                 interaction.user
             );
@@ -231,7 +231,7 @@ async function wyslijRaport(interaction, raportData) {
         // Jeśli to błąd dostępu, spróbuj utworzyć nowy kanał
         if (error.code === 50001) {
             try {
-                const newChannel = await ChannelManager.getOrCreateUserChannel(
+                const newChannel = await channelManager.getOrCreateUserChannel(
                     interaction.guild,
                     interaction.user,
                     true // force create new
@@ -268,10 +268,10 @@ function formatujRaport(raportData, isEdit = false, originalDate = null) {
 ━━━━
 \`${displayName}\` ${header}
 ━━━━━━━━━━━━━━━━
-��‍♂️ **Pracownik:**
+👨‍✈️ **Pracownik:**
 \`${raportData.globalName || raportData.displayName || raportData.username}\`
 
-�� **Miejsce pracy:**
+🏢 **Miejsce pracy:**
 \`${raportData.miejscePracy}\`
 
 ⏳ **Czas pracy:**
