@@ -1,5 +1,5 @@
 // Główny plik aplikacji
-const { Client, GatewayIntentBits, Collection, InteractionType, ModalBuilder, TextInputBuilder, ActionRowBuilder, TextInputStyle, StringSelectMenuBuilder } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, InteractionType, ModalBuilder, TextInputBuilder, ActionRowBuilder, TextInputStyle, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
@@ -32,6 +32,80 @@ const raportStore = require('./utils/raportDataStore');
 const { wyslijRaport, formatujRaport } = require('./commands/raport');
 const googleSheets = require('./utils/googleSheets');
 const ChannelManager = require('./utils/channelManager');
+
+function createFormComponents(guild) {
+    // Miejsce pracy
+    const miejscaPracySelect = new StringSelectMenuBuilder()
+        .setCustomId('miejsce_pracy')
+        .setPlaceholder('Wybierz miejsce pracy')
+        .addOptions(
+            MIEJSCA_PRACY.map(miejsce => ({
+                label: miejsce,
+                value: miejsce
+            }))
+        );
+
+    // Pojazdy
+    const pojazdySelect = new StringSelectMenuBuilder()
+        .setCustomId('auto')
+        .setPlaceholder('Wybierz pojazd')
+        .addOptions(
+            POJAZDY.map(pojazd => ({
+                label: pojazd,
+                value: pojazd
+            }))
+        );
+
+    // Czas
+    const dateSelect = new StringSelectMenuBuilder()
+        .setCustomId('data_raportu')
+        .setPlaceholder('Wybierz datę')
+        .addOptions(CZAS.getDaty());
+
+    const startHourSelect = new StringSelectMenuBuilder()
+        .setCustomId('godzina_rozpoczecia')
+        .setPlaceholder('Wybierz godzinę rozpoczęcia')
+        .addOptions(CZAS.getGodziny());
+
+    const startMinuteSelect = new StringSelectMenuBuilder()
+        .setCustomId('minuta_rozpoczecia')
+        .setPlaceholder('Wybierz minutę rozpoczęcia')
+        .addOptions(CZAS.MINUTY);
+
+    const endHourSelect = new StringSelectMenuBuilder()
+        .setCustomId('godzina_zakonczenia')
+        .setPlaceholder('Wybierz godzinę zakończenia')
+        .addOptions(CZAS.getGodziny());
+
+    const endMinuteSelect = new StringSelectMenuBuilder()
+        .setCustomId('minuta_zakonczenia')
+        .setPlaceholder('Wybierz minutę zakończenia')
+        .addOptions(CZAS.MINUTY);
+
+    // Przyciski diety
+    const dietaButtons = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId('dieta_tak')
+                .setLabel('Dieta: Tak')
+                .setStyle(ButtonStyle.Success),
+            new ButtonBuilder()
+                .setCustomId('dieta_nie')
+                .setLabel('Dieta: Nie')
+                .setStyle(ButtonStyle.Danger)
+        );
+
+    return {
+        miejscaPracySelect,
+        pojazdySelect,
+        dateSelect,
+        startHourSelect,
+        startMinuteSelect,
+        endHourSelect,
+        endMinuteSelect,
+        dietaButtons
+    };
+}
 
 for (const file of commandFiles) {
     const filePath = path.join(commandsPath, file);
@@ -98,15 +172,16 @@ client.on('interactionCreate', async interaction => {
                 const updatedData = raportStore.updateReport(interaction.user.id, updateData);
                 
                 // Aktualizuj wiadomość pokazując cały stan formularza
+                const components = createFormComponents(interaction.guild);
                 await interaction.update({
                     content: `**Stan formularza:**\n
 📍 Miejsce pracy: ${updatedData.miejscePracy || 'nie wybrano'}`,
                     components: [
-                        new ActionRowBuilder().addComponents(miejscaPracySelect),
-                        new ActionRowBuilder().addComponents(pojazdySelect),
-                        new ActionRowBuilder().addComponents(osobyPracujaceSelect),
-                        new ActionRowBuilder().addComponents(kierowcaSelect),
-                        dietaButtons
+                        components.miejscaPracySelect,
+                        components.pojazdySelect,
+                        components.osobyPracujaceSelect,
+                        components.kierowcaSelect,
+                        components.dietaButtons
                     ]
                 });
             }
@@ -166,17 +241,18 @@ client.on('interactionCreate', async interaction => {
                 const updatedData = raportStore.updateReport(interaction.user.id, timeData);
 
                 // Aktualizuj wiadomość pokazując wybrany czas
+                const components = createFormComponents(interaction.guild);
                 await interaction.update({
                     content: `**Wybrane parametry czasu:**\n
 📅 Data: ${updatedData.selectedDate || 'nie wybrano'}
 ⏰ Czas rozpoczęcia: ${updatedData.czasRozpoczecia ? updatedData.czasRozpoczecia.split(' ')[1] : 'nie wybrano'}
 ⏰ Czas zakończenia: ${updatedData.czasZakonczenia ? updatedData.czasZakonczenia.split(' ')[1] : 'nie wybrano'}`,
                     components: [
-                        new ActionRowBuilder().addComponents(dateSelect),
-                        new ActionRowBuilder().addComponents(startHourSelect),
-                        new ActionRowBuilder().addComponents(startMinuteSelect),
-                        new ActionRowBuilder().addComponents(endHourSelect),
-                        new ActionRowBuilder().addComponents(endMinuteSelect)
+                        components.dateSelect,
+                        components.startHourSelect,
+                        components.startMinuteSelect,
+                        components.endHourSelect,
+                        components.endMinuteSelect
                     ]
                 });
             }
