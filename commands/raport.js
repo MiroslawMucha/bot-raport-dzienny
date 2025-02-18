@@ -264,19 +264,20 @@ async function wyslijRaport(interaction, raportData) {
 // Funkcja formatująca raport do wiadomości Discord
 function formatujRaport(raportData, isEdit = false, originalDate = null) {
     const header = isEdit ? 
-        `📌 **RAPORT DZIENNY – EDYCJA** (Oryginalny wpis: ${originalDate})` :
-        `📌 **RAPORT DZIENNY – ORYGINAŁ**`;
+        ` RAPORT DZIENNY – EDYCJA (Oryginalny wpis: ${originalDate})` :
+        ` RAPORT DZIENNY – ORYGINAŁ`;
 
-    // Wybieramy najlepszą dostępną nazwę użytkownika w kolejności:
-    // 1. Imię i nazwisko z profilu Discord (globalName)
-    // 2. Nick na serwerze (displayName)
-    // 3. Podstawowa nazwa użytkownika (username)
     const displayName = raportData.globalName || raportData.displayName || raportData.username;
+    
+    // Dodajemy datę z raportu
+    const dataRaportu = raportData.selectedDate || 
+                       (raportData.czasRozpoczecia ? raportData.czasRozpoczecia.split(' ')[0] : '');
 
     return `
 ━━━━
-\`${displayName}\` ${header}
+📌**\`${displayName}\`** ${header}
 ━━━━━━━━━━━━━━━━
+📅 **${dataRaportu}**
 ‍✈️ **Pracownik:**
 \`${raportData.globalName || raportData.displayName || raportData.username}\`
 
@@ -286,18 +287,13 @@ function formatujRaport(raportData, isEdit = false, originalDate = null) {
 ⏳ **Czas pracy:**
 \`${raportData.czasRozpoczecia} - ${raportData.czasZakonczenia}\`
 
-💰 **Dieta / Delegacja:**
-\`${raportData.dieta ? 'Tak' : 'Nie'}\`
-
+💰 **Dieta / Delegacja:** \`${raportData.dieta ? 'Tak' : 'Nie'}\`
 👥 **Osoby pracujące:**
 \`${raportData.osobyPracujace.join(', ')}\`
 
-🚗 **Auto:**
-\`${raportData.auto}\`
-
-🧑‍✈️ **Kierowca:**
-\`${raportData.kierowca}\`
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`.trim();
+🚗 **Auto:** \`${raportData.auto}\`
+🧑‍✈️ **Kierowca:** \`${raportData.kierowca}\`
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`.trim();
 }
 
 // Funkcja pomocnicza do formatowania stanu formularza
