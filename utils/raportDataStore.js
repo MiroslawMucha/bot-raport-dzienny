@@ -4,10 +4,13 @@ const raportDataStore = new Map();
 // Funkcje pomocnicze do zarządzania danymi
 const store = {
     // Inicjalizacja nowego raportu
-    initReport: (userId, username) => {
+    initReport: (userId, userData) => {
         const newReport = {
             userId,
-            username,
+            username: userData.username,
+            displayName: userData.displayName,
+            globalName: userData.globalName,
+            fullName: userData.fullName,
             miejscePracy: '',
             czasRozpoczecia: '',
             czasZakonczenia: '',

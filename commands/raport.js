@@ -14,7 +14,12 @@ module.exports = {
 
     async execute(interaction) {
         // Inicjalizacja raportu w store
-        raportStore.initReport(interaction.user.id, interaction.user.username);
+        raportStore.initReport(interaction.user.id, {
+            username: interaction.user.username,
+            displayName: interaction.member.displayName,
+            globalName: interaction.user.globalName,
+            fullName: interaction.user.globalName || interaction.member.displayName
+        });
 
         // Utworzenie formularza z wyborem miejsca pracy
         const miejscaPracySelect = new StringSelectMenuBuilder()
@@ -155,8 +160,15 @@ async function pobierzCzlonkowSerwera(guild) {
     return members
         .filter(member => !member.user.bot)
         .map(member => ({
-            label: member.displayName,
-            value: member.displayName
+            label: `${member.displayName} (${member.user.globalName || member.user.username})`,
+            value: member.displayName,
+            // Dodajemy dodatkowe informacje o użytkowniku
+            userData: {
+                displayName: member.displayName,         // Nick na serwerze
+                globalName: member.user.globalName,      // Globalna nazwa wyświetlana
+                username: member.user.username,          // Nazwa użytkownika
+                fullName: member.user.globalName || member.displayName // Używamy globalName jako pełnej nazwy
+            }
         }));
 }
 
@@ -201,11 +213,12 @@ function formatujRaport(raportData, isEdit = false, originalDate = null) {
         `🛠 **RAPORT DZIENNY – EDYCJA** (Oryginalny wpis: ${originalDate})` :
         `📌 **RAPORT DZIENNY – ORYGINAŁ**`;
 
+    const displayName = raportData.fullName || raportData.displayName || raportData.username;
+
     return `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━
-${header}
+\`${displayName}\` ${header}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
 👷‍♂️ **Pracownik:**
 \`${raportData.pracownik}\`
 
@@ -226,7 +239,6 @@ ${header}
 
 🧑‍✈️ **Kierowca:**
 \`${raportData.kierowca}\`
-
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━`.trim();
 }
 
