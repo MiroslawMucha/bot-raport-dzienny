@@ -79,24 +79,51 @@ client.on('interactionCreate', async interaction => {
             const { customId } = interaction;
             let updateData = {};
 
-            if (customId.startsWith('miejsce_')) {
-                updateData.miejscePracy = interaction.values[0];
-            } 
-            else if (customId === 'auto') {
-                updateData.auto = interaction.values[0];
-                console.log('Wybrane auto:', updateData.auto);
+            // Obsługa wyboru miejsca pracy, auta, osób i kierowcy
+            if (customId === 'miejsce_pracy' || customId === 'auto' || 
+                customId === 'osoby_pracujace' || customId === 'kierowca') {
+                
+                // Aktualizuj odpowiednie pole
+                if (customId === 'miejsce_pracy') {
+                    updateData.miejscePracy = interaction.values[0];
+                } else if (customId === 'auto') {
+                    updateData.auto = interaction.values[0];
+                } else if (customId === 'osoby_pracujace') {
+                    updateData.osobyPracujace = interaction.values;
+                } else if (customId === 'kierowca') {
+                    updateData.kierowca = interaction.values[0];
+                }
+
+                // Aktualizuj dane w store
+                const updatedData = raportStore.updateReport(interaction.user.id, updateData);
+                
+                // Aktualizuj wiadomość pokazując cały stan formularza
+                await interaction.update({
+                    content: `**Stan formularza:**\n
+📍 Miejsce pracy: ${updatedData.miejscePracy || 'nie wybrano'}
+🚗 Auto: ${updatedData.auto || 'nie wybrano'}
+👥 Osoby pracujące: ${updatedData.osobyPracujace?.length ? updatedData.osobyPracujace.join(', ') : 'nie wybrano'}
+🧑‍✈️ Kierowca: ${updatedData.kierowca || 'nie wybrano'}
+💰 Dieta: ${updatedData.dieta === undefined ? 'nie wybrano' : updatedData.dieta ? 'Tak' : 'Nie'}`,
+                    components: interaction.message.components
+                });
             }
-            else if (customId === 'osoby_pracujace') {
-                updateData.osobyPracujace = interaction.values;
-                console.log('Wybrane osoby:', updateData.osobyPracujace);
-            }
-            else if (customId === 'kierowca') {
-                updateData.kierowca = interaction.values[0];
-                console.log('Wybrany kierowca:', updateData.kierowca);
-            }
+            // Obsługa wyboru diety
             else if (customId.startsWith('dieta_')) {
                 updateData.dieta = customId === 'dieta_tak';
+                const updatedData = raportStore.updateReport(interaction.user.id, updateData);
+                
+                await interaction.update({
+                    content: `**Stan formularza:**\n
+📍 Miejsce pracy: ${updatedData.miejscePracy || 'nie wybrano'}
+🚗 Auto: ${updatedData.auto || 'nie wybrano'}
+👥 Osoby pracujące: ${updatedData.osobyPracujace?.length ? updatedData.osobyPracujace.join(', ') : 'nie wybrano'}
+🧑‍✈️ Kierowca: ${updatedData.kierowca || 'nie wybrano'}
+💰 Dieta: ${updatedData.dieta ? 'Tak' : 'Nie'}`,
+                    components: interaction.message.components
+                });
             }
+            // Pozostaw istniejący kod dla wyboru czasu
             else if (customId === 'czas_rozpoczecia' || customId === 'czas_zakonczenia') {
                 // Pobierz dzisiejszą datę
                 const today = new Date();
