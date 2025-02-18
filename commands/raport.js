@@ -174,8 +174,14 @@ async function pobierzCzlonkowSerwera(guild) {
 
 // Funkcja wysyłająca raport
 async function wyslijRaport(interaction, raportData) {
+    // Dodajemy pełną nazwę do danych przed wysłaniem do Google Sheets
+    const dataToSend = {
+        ...raportData,
+        pracownik: raportData.globalName || raportData.displayName || raportData.username
+    };
+
     // Zapisanie do Google Sheets
-    const zapisano = await googleSheets.dodajRaport(raportData);
+    const zapisano = await googleSheets.dodajRaport(dataToSend);
 
     if (zapisano) {
         // Formatowanie wiadomości raportu
@@ -213,14 +219,15 @@ function formatujRaport(raportData, isEdit = false, originalDate = null) {
         `🛠 **RAPORT DZIENNY – EDYCJA** (Oryginalny wpis: ${originalDate})` :
         `📌 **RAPORT DZIENNY – ORYGINAŁ**`;
 
-    const displayName = raportData.fullName || raportData.displayName || raportData.username;
+    // Wybieramy najlepszą dostępną nazwę użytkownika
+    const displayName = raportData.globalName || raportData.displayName || raportData.username;
 
     return `
-━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━
 \`${displayName}\` ${header}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━
 👷‍♂️ **Pracownik:**
-\`${raportData.pracownik}\`
+\`${raportData.globalName || raportData.displayName || raportData.username}\`
 
 📍 **Miejsce pracy:**
 \`${raportData.miejscePracy}\`
