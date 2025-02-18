@@ -99,17 +99,59 @@ client.on('interactionCreate', async interaction => {
                         displayName: interaction.member.displayName,
                         globalName: interaction.user.globalName
                     });
-                    
-                    // Używamy istniejącego systemu formularzy z raport.js
+
+                    // Pokazujemy pierwszy formularz edycji
+                    const miejscaPracySelect = new StringSelectMenuBuilder()
+                        .setCustomId('miejsce_pracy')
+                        .setPlaceholder('Wybierz miejsce pracy')
+                        .addOptions(MIEJSCA_PRACY.map(miejsce => ({
+                            label: miejsce,
+                            value: miejsce,
+                            default: miejsce === selectedReport.miejscePracy
+                        })));
+
+                    const row = new ActionRowBuilder().addComponents(miejscaPracySelect);
+
                     await interaction.update({
-                        content: 'Edycja raportu rozpoczęta. Wypełnij formularz od nowa:',
-                        components: [], // Czyścimy komponenty
+                        content: `**Edycja raportu z ${selectedReport.data}**\n\nAktualne miejsce pracy: ${selectedReport.miejscePracy}\nWybierz nowe miejsce pracy lub pozostaw bez zmian:`,
+                        components: [row],
                         ephemeral: true
                     });
-
-                    // Uruchamiamy standardowy proces tworzenia raportu
-                    await wyslijRaport(interaction, editSession);
                 }
+            }
+
+            // Obsługa wyboru miejsca pracy
+            else if (customId === 'miejsce_pracy') {
+                const editSession = raportStore.getReport(interaction.user.id);
+                if (!editSession || !editSession.isEditing) {
+                    await interaction.reply({
+                        content: 'Sesja edycji wygasła. Użyj ponownie komendy /edytuj_raport',
+                        ephemeral: true
+                    });
+                    return;
+                }
+
+                // Aktualizuj miejsce pracy
+                editSession.miejscePracy = interaction.values[0];
+                raportStore.updateReport(interaction.user.id, { miejscePracy: interaction.values[0] });
+
+                // Pokaż następny formularz (wybór auta)
+                const autoSelect = new StringSelectMenuBuilder()
+                    .setCustomId('auto')
+                    .setPlaceholder('Wybierz auto')
+                    .addOptions(POJAZDY.map(auto => ({
+                        label: auto,
+                        value: auto,
+                        default: auto === editSession.auto
+                    })));
+
+                const row = new ActionRowBuilder().addComponents(autoSelect);
+
+                await interaction.update({
+                    content: `**Edycja raportu**\nMiejsce pracy: ${editSession.miejscePracy}\n\nWybierz auto:`,
+                    components: [row],
+                    ephemeral: true
+                });
             }
 
             // Obsługa przycisku reset
