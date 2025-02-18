@@ -175,12 +175,15 @@ const store = {
         }
     },
 
-    initEditSession: (userId, originalRaportData) => {
+    initEditSession: (userId, originalRaport) => {
         const editSession = {
-            ...originalRaportData,
-            startTime: Date.now(),
+            userId,
+            username: originalRaport.username,
+            displayName: originalRaport.displayName,
+            globalName: originalRaport.globalName,
             isEditing: true,
-            originalRaportId: originalRaportData.raportId
+            originalRowIndex: originalRaport.rowIndex,
+            startTime: Date.now()
         };
         raportDataStore.set(userId, editSession);
         return editSession;

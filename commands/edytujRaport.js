@@ -6,6 +6,7 @@ const googleSheets = require('../utils/googleSheets');
 const ChannelManager = require('../utils/channelManager');
 const { pobierzCzlonkowSerwera } = require('../utils/timeValidation');
 const raportStore = require('../utils/raportDataStore');
+const { wyslijRaport, formatujRaport } = require('./raport'); // Importujemy funkcje z raport.js
 
 // Stałe dla etapów edycji
 const EDIT_STAGES = {
@@ -31,13 +32,12 @@ module.exports = {
             }
 
             const editableReports = await googleSheets.getEditableReports(
-                interaction.user.username,
-                7
+                interaction.user.username
             );
 
             if (editableReports.length === 0) {
                 await interaction.reply({
-                    content: '❌ Nie znaleziono raportów do edycji z ostatnich 7 dni.',
+                    content: '❌ Nie znaleziono raportów do edycji.',
                     ephemeral: true
                 });
                 return;
@@ -424,50 +424,66 @@ async function validateAndSaveChanges(interaction, editSession) {
 
 // Funkcja do obsługi drugiego etapu - wybór osób
 async function handleOsobyEdit(interaction, editSession) {
-    const components = [];
-    const czlonkowie = await pobierzCzlonkowSerwera(interaction.guild);
+    try {
+        const components = [];
+        const czlonkowie = await pobierzCzlonkowSerwera(interaction.guild);
 
-    // 1. Osoby pracujące
-    const osobySelect = new StringSelectMenuBuilder()
-        .setCustomId('osoby_pracujace')
-        .setPlaceholder('Zmień osoby pracujące')
-        .setMinValues(1)
-        .setMaxValues(Math.min(czlonkowie.length, 25))
-        .addOptions(czlonkowie.map(czlonek => ({
-            ...czlonek,
-            default: editSession.osobyPracujace.includes(czlonek.value)
-        })));
-    components.push(new ActionRowBuilder().addComponents(osobySelect));
+        if (czlonkowie.length === 0) {
+            await interaction.reply({
+                content: '❌ Nie udało się pobrać listy członków serwera.',
+                ephemeral: true
+            });
+            return;
+        }
 
-    // 2. Kierowca
-    const kierowcaSelect = new StringSelectMenuBuilder()
-        .setCustomId('kierowca')
-        .setPlaceholder('Zmień kierowcę')
-        .addOptions(czlonkowie.map(czlonek => ({
-            ...czlonek,
-            default: editSession.kierowca === czlonek.value
-        })));
-    components.push(new ActionRowBuilder().addComponents(kierowcaSelect));
+        // 1. Osoby pracujące
+        const osobySelect = new StringSelectMenuBuilder()
+            .setCustomId('osoby_pracujace')
+            .setPlaceholder('Zmień osoby pracujące')
+            .setMinValues(1)
+            .setMaxValues(Math.min(czlonkowie.length, 25))
+            .addOptions(czlonkowie.map(czlonek => ({
+                ...czlonek,
+                default: editSession.osobyPracujace.includes(czlonek.value)
+            })));
+        components.push(new ActionRowBuilder().addComponents(osobySelect));
 
-    // 3. Przyciski nawigacji
-    const navigationButtons = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId('edit_podstawowe')
-                .setLabel('⬅️ Wróć')
-                .setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder()
-                .setCustomId('save_edit')
-                .setLabel('💾 Zapisz zmiany')
-                .setStyle(ButtonStyle.Success)
-        );
-    components.push(navigationButtons);
+        // 2. Kierowca
+        const kierowcaSelect = new StringSelectMenuBuilder()
+            .setCustomId('kierowca')
+            .setPlaceholder('Zmień kierowcę')
+            .addOptions(czlonkowie.map(czlonek => ({
+                ...czlonek,
+                default: editSession.kierowca === czlonek.value
+            })));
+        components.push(new ActionRowBuilder().addComponents(kierowcaSelect));
 
-    await interaction.update({
-        content: formatujStanEdycji(editSession, 'osoby'),
-        components: components,
-        ephemeral: true
-    });
+        // 3. Przyciski nawigacji
+        const navigationButtons = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId('edit_podstawowe')
+                    .setLabel('⬅️ Wróć')
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
+                    .setCustomId('save_edit')
+                    .setLabel('💾 Zapisz zmiany')
+                    .setStyle(ButtonStyle.Success)
+            );
+        components.push(navigationButtons);
+
+        await interaction.update({
+            content: formatujStanEdycji(editSession, 'osoby'),
+            components: components,
+            ephemeral: true
+        });
+    } catch (error) {
+        console.error('Błąd podczas edycji osób:', error);
+        await interaction.reply({
+            content: '❌ Wystąpił błąd podczas edycji osób.',
+            ephemeral: true
+        });
+    }
 }
 
 // Funkcja do obsługi etapu edycji czasu

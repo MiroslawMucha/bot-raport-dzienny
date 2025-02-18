@@ -84,8 +84,7 @@ client.on('interactionCreate', async interaction => {
             if (customId === 'select_raport_to_edit') {
                 const selectedRowIndex = interaction.values[0];
                 const editableReports = await googleSheets.getEditableReports(
-                    interaction.user.username,
-                    7
+                    interaction.user.username
                 );
                 
                 const selectedReport = editableReports.find(
@@ -93,12 +92,21 @@ client.on('interactionCreate', async interaction => {
                 );
 
                 if (selectedReport) {
+                    // Inicjalizujemy sesję edycji
                     const editSession = raportStore.initEditSession(interaction.user.id, selectedReport);
-                    await handleBasicEdit(interaction, editSession);
-                } else {
-                    await interaction.reply({
-                        content: '❌ Nie znaleziono wybranego raportu.',
+                    
+                    // Używamy istniejącego systemu formularzy z raport.js
+                    await interaction.update({
+                        content: 'Edycja raportu rozpoczęta. Wypełnij formularz od nowa:',
+                        components: [], // Czyścimy komponenty
                         ephemeral: true
+                    });
+
+                    // Uruchamiamy standardowy proces tworzenia raportu
+                    await wyslijRaport(interaction, {
+                        ...editSession,
+                        isEditing: true,
+                        originalRowIndex: selectedReport.rowIndex
                     });
                 }
             }
