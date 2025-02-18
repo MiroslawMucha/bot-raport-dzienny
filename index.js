@@ -100,12 +100,14 @@ client.on('interactionCreate', async interaction => {
                 // Aktualizuj wiadomość pokazując cały stan formularza
                 await interaction.update({
                     content: `**Stan formularza:**\n
-📍 Miejsce pracy: ${updatedData.miejscePracy || 'nie wybrano'}
-🚗 Auto: ${updatedData.auto || 'nie wybrano'}
-👥 Osoby pracujące: ${updatedData.osobyPracujace?.length ? updatedData.osobyPracujace.join(', ') : 'nie wybrano'}
-🧑‍✈️ Kierowca: ${updatedData.kierowca || 'nie wybrano'}
-💰 Dieta: ${updatedData.dieta === undefined ? 'nie wybrano' : updatedData.dieta ? 'Tak' : 'Nie'}`,
-                    components: interaction.message.components
+📍 Miejsce pracy: ${updatedData.miejscePracy || 'nie wybrano'}`,
+                    components: [
+                        new ActionRowBuilder().addComponents(miejscaPracySelect),
+                        new ActionRowBuilder().addComponents(pojazdySelect),
+                        new ActionRowBuilder().addComponents(osobyPracujaceSelect),
+                        new ActionRowBuilder().addComponents(kierowcaSelect),
+                        dietaButtons
+                    ]
                 });
             }
             // Obsługa wyboru diety
@@ -169,7 +171,13 @@ client.on('interactionCreate', async interaction => {
 📅 Data: ${updatedData.selectedDate || 'nie wybrano'}
 ⏰ Czas rozpoczęcia: ${updatedData.czasRozpoczecia ? updatedData.czasRozpoczecia.split(' ')[1] : 'nie wybrano'}
 ⏰ Czas zakończenia: ${updatedData.czasZakonczenia ? updatedData.czasZakonczenia.split(' ')[1] : 'nie wybrano'}`,
-                    components: interaction.message.components
+                    components: [
+                        new ActionRowBuilder().addComponents(dateSelect),
+                        new ActionRowBuilder().addComponents(startHourSelect),
+                        new ActionRowBuilder().addComponents(startMinuteSelect),
+                        new ActionRowBuilder().addComponents(endHourSelect),
+                        new ActionRowBuilder().addComponents(endMinuteSelect)
+                    ]
                 });
             }
 
