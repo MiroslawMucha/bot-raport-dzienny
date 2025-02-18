@@ -196,9 +196,10 @@ client.on('interactionCreate', async interaction => {
                             .setStyle(ButtonStyle.Danger)
                     );
 
-                // Pokaż podsumowanie raportu
-                await interaction.followUp({
-                    content: `**Podsumowanie raportu:**\n
+                // Użyj update zamiast followUp dla interakcji z komponentami
+                if (interaction.isMessageComponent()) {
+                    await interaction.update({
+                        content: `**Podsumowanie raportu:**\n
 👷‍♂️ Pracownik: ${currentData.username}
 📍 Miejsce pracy: ${currentData.miejscePracy}
 ⏰ Czas pracy: ${currentData.czasRozpoczecia} - ${currentData.czasZakonczenia}
@@ -208,27 +209,35 @@ client.on('interactionCreate', async interaction => {
 🧑‍✈️ Kierowca: ${currentData.kierowca}
 
 Czy chcesz wysłać raport?`,
-                    components: [confirmationButtons],
-                    ephemeral: true
-                });
+                        components: [confirmationButtons],
+                    });
+                }
             }
 
-            // Dodaj obsługę przycisków potwierdzenia
+            // Obsługa przycisków potwierdzenia
             else if (customId === 'wyslij_raport' || customId === 'anuluj_raport') {
                 if (customId === 'wyslij_raport') {
                     const currentData = raportStore.getReport(interaction.user.id);
                     currentData.pracownik = currentData.username;
                     
                     try {
+                        // Najpierw odpowiedz na interakcję
+                        await interaction.update({
+                            content: 'Wysyłanie raportu...',
+                            components: [] // Usuń przyciski
+                        });
+
                         await wyslijRaport(interaction, currentData);
-                        // Usuń dane z store po wysłaniu
                         raportStore.deleteReport(interaction.user.id);
                         
-                        // Usuń wszystkie wiadomości formularza
-                        await interaction.message.delete().catch(() => {});
+                        // Teraz możemy użyć followUp
+                        await interaction.followUp({
+                            content: 'Raport został pomyślnie wysłany!',
+                            ephemeral: true
+                        });
                     } catch (error) {
                         console.error('Błąd podczas wysyłania raportu:', error);
-                        await interaction.reply({
+                        await interaction.followUp({
                             content: 'Wystąpił błąd podczas wysyłania raportu.',
                             ephemeral: true
                         });
@@ -237,12 +246,9 @@ Czy chcesz wysłać raport?`,
                     // Anuluj raport
                     raportStore.deleteReport(interaction.user.id);
                     
-                    // Usuń wszystkie wiadomości formularza
-                    await interaction.message.delete().catch(() => {});
-                    
-                    await interaction.reply({
+                    await interaction.update({
                         content: 'Raport anulowany. Użyj komendy /raport aby rozpocząć od nowa.',
-                        ephemeral: true
+                        components: [] // Usuń przyciski
                     });
                 }
             }
