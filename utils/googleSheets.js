@@ -18,6 +18,7 @@ class GoogleSheetsService {
         this.sheetsApi = null;
         this.writeQueue = []; // Kolejka zapisów
         this.processing = false;
+        this.writeLock = false;
         this.init();
     }
 
@@ -53,57 +54,65 @@ class GoogleSheetsService {
         this.processing = false;
     }
 
+    async generujNoweId(username) {
+        try {
+            const now = new Date();
+            // Format: YYYY-MM-DD--HH:MM:SS--username
+            const dateStr = now.toISOString()
+                .replace('T', '--')     // Zamiana T na --
+                .split('.')[0];         // Usuwamy milisekundy
+            return `${dateStr}--${username}`;
+        } catch (error) {
+            console.error('Błąd podczas generowania ID:', error);
+            throw error;
+        }
+    }
+
     // Dodawanie nowego raportu do arkusza
     async dodajRaport(raportData) {
-        return new Promise((resolve, reject) => {
-            this.writeQueue.push({
-                operation: async () => {
-                    try {
-                        if (!this.sheetsApi) {
-                            await this.init();
-                        }
+        if (this.writeLock) {
+            console.log('⏳ Czekam na zwolnienie blokady zapisu...');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            return this.dodajRaport(raportData);
+        }
 
-                        // Sprawdź wymagane pola
-                        if (!this.validateRaportData(raportData)) {
-                            throw new Error('Brakuje wymaganych danych w raporcie!');
-                        }
+        this.writeLock = true;
+        try {
+            if (!this.sheetsApi) await this.init();
 
-                        // Przygotuj dane do zapisu w kolejności zgodnej z arkuszem
-                        const values = [[
-                            new Date().toISOString(),        // Data utworzenia
-                            raportData.pracownik,            // Pracownik (używamy pracownik zamiast username)
-                            raportData.miejscePracy,         // Miejsce pracy (dodane)
-                            raportData.czasRozpoczecia,      // Czas rozpoczęcia
-                            raportData.czasZakonczenia,      // Czas zakończenia
-                            raportData.dieta ? 'Tak' : 'Nie',// Dieta
-                            raportData.osobyPracujace.join(', '), // Osoby pracujące
-                            raportData.auto,                 // Auto
-                            raportData.kierowca,             // Kierowca
-                            'Aktywny'                        // Status
-                        ]];
+            // Generujemy ID raportu
+            const raportId = await this.generujNoweId(raportData.username);
+            
+            // Przygotuj dane do zapisu
+            const values = [[
+                raportId,                               // ID raportu (np. 2024-03-15--14:30:45--john_doe)
+                raportData.pracownik,                   // Pracownik
+                raportData.miejscePracy,                // Miejsce pracy
+                raportData.czasRozpoczecia,             // Czas rozpoczęcia
+                raportData.czasZakonczenia,             // Czas zakończenia
+                raportData.dieta ? 'Tak' : 'Nie',       // Dieta
+                raportData.osobyPracujace.join(', '),   // Osoby pracujące
+                raportData.auto,                        // Auto
+                raportData.kierowca,                    // Kierowca
+                'Aktywny'                               // Status
+            ]];
 
-                        // Zapisz do arkusza
-                        const response = await this.sheetsApi.spreadsheets.values.append({
-                            spreadsheetId: process.env.GOOGLE_SHEET_ID,
-                            range: `${SHEET_NAME}!${SHEET_RANGE}`,
-                            valueInputOption: 'USER_ENTERED',
-                            resource: {
-                                values: values
-                            }
-                        });
-
-                        console.log('Raport zapisany pomyślnie:', response.data);
-                        return true;
-                    } catch (error) {
-                        console.error('Błąd podczas zapisywania raportu:', error);
-                        throw error;
-                    }
-                },
-                resolve,
-                reject
+            // Zapisz do arkusza
+            await this.sheetsApi.spreadsheets.values.append({
+                spreadsheetId: process.env.GOOGLE_SHEET_ID,
+                range: `${SHEET_NAME}!${SHEET_RANGE}`,
+                valueInputOption: 'USER_ENTERED',
+                resource: { values }
             });
-            this.processWriteQueue();
-        });
+
+            console.log(`✅ Dodano raport ID: ${raportId}`);
+            return true;
+        } catch (error) {
+            console.error('❌ Błąd podczas dodawania raportu:', error);
+            return false;
+        } finally {
+            this.writeLock = false;
+        }
     }
 
     validateRaportData(data) {
