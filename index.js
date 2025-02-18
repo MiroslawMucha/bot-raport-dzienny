@@ -76,7 +76,7 @@ client.on('interactionCreate', async interaction => {
                 return;
             }
 
-            const customId = interaction.customId;
+            const { customId } = interaction;
             let updateData = {};
 
             if (customId.startsWith('miejsce_')) {
