@@ -7,8 +7,8 @@ const MAX_CONCURRENT_FORMS = 10;
 
 // Stała określająca czas ważności formularza (5 minut)
 const FORM_TIMEOUT = 5 * 60 * 1000;
-// Interwał czyszczenia (2 minuty)
-const CLEANUP_INTERVAL = 2 * 60 * 1000;
+// Interwał czyszczenia (10 minut)
+const CLEANUP_INTERVAL = 10 * 60 * 1000;
 
 // Funkcje pomocnicze do zarządzania danymi
 const store = {
@@ -176,7 +176,7 @@ const store = {
     }
 };
 
-// Uruchamiamy czyszczenie co 2 minuty
+// Uruchamiamy czyszczenie co 10 minut
 setInterval(store.cleanupStaleReports, CLEANUP_INTERVAL);
 
 module.exports = store; 

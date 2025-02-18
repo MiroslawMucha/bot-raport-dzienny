@@ -20,12 +20,23 @@ module.exports = {
             });
 
             // Inicjalizacja nowego formularza (zawiera reset)
-            raportStore.initReport(interaction.user.id, {
-                username: interaction.user.username,
-                displayName: interaction.member.displayName,
-                globalName: interaction.user.globalName,
-                fullName: interaction.user.globalName || interaction.member.displayName
-            });
+            try {
+                raportStore.initReport(interaction.user.id, {
+                    username: interaction.user.username,
+                    displayName: interaction.member.displayName,
+                    globalName: interaction.user.globalName,
+                    fullName: interaction.user.globalName || interaction.member.displayName
+                });
+            } catch (error) {
+                if (error.message.includes('Zbyt wiele aktywnych formularzy')) {
+                    await interaction.reply({
+                        content: error.message,
+                        ephemeral: true
+                    });
+                    return;
+                }
+                throw error; // Przekazujemy dalej inne błędy
+            }
 
             // Utworzenie formularza z wyborem miejsca pracy
             const miejscaPracySelect = new StringSelectMenuBuilder()
