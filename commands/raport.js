@@ -91,7 +91,7 @@ module.exports = {
         const startHourSelect = new StringSelectMenuBuilder()
             .setCustomId('godzina_rozpoczecia')
             .setPlaceholder('Wybierz godzinę rozpoczęcia')
-            .addOptions(CZAS.getGodziny());
+            .addOptions(CZAS.getGodzinyRozpoczecia());
 
         // Tworzenie menu wyboru minuty rozpoczęcia
         const startMinuteSelect = new StringSelectMenuBuilder()
@@ -103,7 +103,7 @@ module.exports = {
         const endHourSelect = new StringSelectMenuBuilder()
             .setCustomId('godzina_zakonczenia')
             .setPlaceholder('Wybierz godzinę zakończenia')
-            .addOptions(CZAS.getGodziny());
+            .addOptions(CZAS.getGodzinyZakonczenia());
 
         // Tworzenie menu wyboru minuty zakończenia
         const endMinuteSelect = new StringSelectMenuBuilder()

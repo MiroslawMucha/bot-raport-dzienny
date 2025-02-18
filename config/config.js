@@ -53,12 +53,27 @@ module.exports = {
             { label: '00', value: '00' },
             { label: '30', value: '30' }
         ],
-        // Funkcja generująca godziny 00-23
-        getGodziny: () => {
-            return Array.from({ length: 24 }, (_, i) => ({
-                label: `${String(i).padStart(2, '0')}:00`,
-                value: String(i).padStart(2, '0')
-            }));
+        // Funkcja generująca godziny rozpoczęcia (od 7:00)
+        getGodzinyRozpoczecia: () => {
+            return Array.from({ length: 24 }, (_, i) => {
+                const hour = (i + 7) % 24; // Zaczynamy od 7:00
+                return {
+                    label: `${String(hour).padStart(2, '0')}:00`,
+                    value: String(hour).padStart(2, '0'),
+                    default: hour === 7 // Domyślnie wybrane 7:00
+                };
+            });
+        },
+        // Funkcja generująca godziny zakończenia (od 15:00)
+        getGodzinyZakonczenia: () => {
+            return Array.from({ length: 24 }, (_, i) => {
+                const hour = (i + 15) % 24; // Zaczynamy od 15:00
+                return {
+                    label: `${String(hour).padStart(2, '0')}:00`,
+                    value: String(hour).padStart(2, '0'),
+                    default: hour === 15 // Domyślnie wybrane 15:00
+                };
+            });
         },
         // Funkcja generująca daty (dziś i 20 dni wstecz)
         getDaty: () => {
