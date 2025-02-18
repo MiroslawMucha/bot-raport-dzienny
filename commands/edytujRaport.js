@@ -50,7 +50,11 @@ module.exports = {
                 .addOptions(editableReports.map(raport => ({
                     label: `${raport.data} - ${raport.miejscePracy}`,
                     description: `${raport.czasRozpoczecia} - ${raport.czasZakonczenia}`,
-                    value: raport.rowIndex.toString()
+                    value: raport.rowIndex.toString(),
+                    data: {
+                        ...raport,
+                        rowIndex: raport.rowIndex.toString()
+                    }
                 })));
 
             const row = new ActionRowBuilder().addComponents(selectMenu);

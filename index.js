@@ -92,8 +92,13 @@ client.on('interactionCreate', async interaction => {
                 );
 
                 if (selectedReport) {
-                    // Inicjalizujemy sesję edycji
-                    const editSession = raportStore.initEditSession(interaction.user.id, selectedReport);
+                    // Inicjalizujemy sesję edycji z pełnymi danymi
+                    const editSession = raportStore.initEditSession(interaction.user.id, {
+                        ...selectedReport,
+                        username: interaction.user.username,
+                        displayName: interaction.member.displayName,
+                        globalName: interaction.user.globalName
+                    });
                     
                     // Używamy istniejącego systemu formularzy z raport.js
                     await interaction.update({
@@ -103,11 +108,7 @@ client.on('interactionCreate', async interaction => {
                     });
 
                     // Uruchamiamy standardowy proces tworzenia raportu
-                    await wyslijRaport(interaction, {
-                        ...editSession,
-                        isEditing: true,
-                        originalRowIndex: selectedReport.rowIndex
-                    });
+                    await wyslijRaport(interaction, editSession);
                 }
             }
 

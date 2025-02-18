@@ -178,11 +178,19 @@ const store = {
     initEditSession: (userId, originalRaport) => {
         const editSession = {
             userId,
-            username: originalRaport.username,
-            displayName: originalRaport.displayName,
-            globalName: originalRaport.globalName,
+            username: originalRaport.pracownik,
+            displayName: originalRaport.pracownik,
+            globalName: originalRaport.pracownik,
             isEditing: true,
             originalRowIndex: originalRaport.rowIndex,
+            miejscePracy: originalRaport.miejscePracy,
+            czasRozpoczecia: originalRaport.czasRozpoczecia,
+            czasZakonczenia: originalRaport.czasZakonczenia,
+            dieta: originalRaport.dieta,
+            osobyPracujace: originalRaport.osobyPracujace || [],
+            auto: originalRaport.auto,
+            kierowca: originalRaport.kierowca,
+            data: originalRaport.data,
             startTime: Date.now()
         };
         raportDataStore.set(userId, editSession);
