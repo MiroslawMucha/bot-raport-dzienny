@@ -14,6 +14,14 @@ console.log('Env variables loaded:', {
     envPath: require('dotenv').config().parsed ? 'loaded' : 'not loaded'
 });
 
+// Na początku pliku, dodaj import konfiguracji
+const { MIEJSCA_PRACY, POJAZDY } = require('./config/config');
+
+// Dodajmy brakujące importy na początku pliku
+const { 
+    pobierzCzlonkowSerwera 
+} = require('./utils/timeValidation');
+
 // Inicjalizacja klienta Discord z odpowiednimi uprawnieniami
 const client = new Client({
     intents: [
@@ -407,9 +415,46 @@ Czy chcesz wysłać raport?`,
             }
             else if (customId === 'save_edit') {
                 const editSession = raportStore.getReport(interaction.user.id);
-                if (editSession) {
-                    await validateAndSaveChanges(interaction, editSession);
+                if (!editSession || !editSession.isEditing) return;
+
+                try {
+                    // Zapisz zmiany w Google Sheets
+                    const saved = await googleSheets.updateReport(
+                        editSession.originalRowIndex,
+                        editSession,
+                        interaction.user.username
+                    );
+
+                    if (saved) {
+                        // Wyślij zaktualizowany raport na kanał
+                        const channel = interaction.guild.channels.cache.get(process.env.KANAL_RAPORTY_ID);
+                        if (channel) {
+                            await channel.send(formatujRaport(editSession, true, editSession.data));
+                        }
+
+                        await interaction.update({
+                            content: '✅ Zmiany zostały zapisane pomyślnie!',
+                            components: [],
+                            ephemeral: true
+                        });
+                    }
+                } catch (error) {
+                    console.error('Błąd podczas zapisywania zmian:', error);
+                    await interaction.reply({
+                        content: '❌ Wystąpił błąd podczas zapisywania zmian.',
+                        ephemeral: true
+                    });
+                } finally {
+                    raportStore.deleteReport(interaction.user.id);
                 }
+            }
+            else if (customId === 'cancel_edit') {
+                raportStore.deleteReport(interaction.user.id);
+                await interaction.update({
+                    content: '❌ Edycja została anulowana.',
+                    components: [],
+                    ephemeral: true
+                });
             }
 
             // Obsługa przycisków nawigacji
@@ -434,6 +479,114 @@ Czy chcesz wysłać raport?`,
                         await handleBasicEdit(interaction, editSession);
                         break;
                 }
+            }
+
+            // W sekcji obsługi interakcji komponentów
+            else if (customId === 'auto') {
+                const editSession = raportStore.getReport(interaction.user.id);
+                if (!editSession || !editSession.isEditing) return;
+
+                // Aktualizuj auto
+                editSession.auto = interaction.values[0];
+                raportStore.updateReport(interaction.user.id, { auto: interaction.values[0] });
+
+                // Pokaż wybór diety
+                const dietaButtons = new ActionRowBuilder()
+                    .addComponents(
+                        new ButtonBuilder()
+                            .setCustomId('dieta_tak')
+                            .setLabel('Dieta: Tak')
+                            .setStyle(ButtonStyle.Secondary),
+                        new ButtonBuilder()
+                            .setCustomId('dieta_nie')
+                            .setLabel('Dieta: Nie')
+                            .setStyle(ButtonStyle.Secondary)
+                    );
+
+                await interaction.update({
+                    content: `**Edycja raportu**\nMiejsce pracy: ${editSession.miejscePracy}\nAuto: ${editSession.auto}\n\nWybierz dietę:`,
+                    components: [dietaButtons],
+                    ephemeral: true
+                });
+            }
+
+            else if (customId.startsWith('dieta_')) {
+                const editSession = raportStore.getReport(interaction.user.id);
+                if (!editSession || !editSession.isEditing) return;
+
+                // Aktualizuj dietę
+                const dieta = customId === 'dieta_tak';
+                editSession.dieta = dieta;
+                raportStore.updateReport(interaction.user.id, { dieta });
+
+                // Pobierz listę członków serwera
+                const czlonkowie = await pobierzCzlonkowSerwera(interaction.guild);
+                
+                // Pokaż wybór osób
+                const osobySelect = new StringSelectMenuBuilder()
+                    .setCustomId('osoby_pracujace')
+                    .setPlaceholder('Wybierz osoby pracujące')
+                    .setMinValues(1)
+                    .setMaxValues(Math.min(czlonkowie.length, 25))
+                    .addOptions(czlonkowie);
+
+                await interaction.update({
+                    content: `**Edycja raportu**\nMiejsce pracy: ${editSession.miejscePracy}\nAuto: ${editSession.auto}\nDieta: ${dieta ? 'Tak' : 'Nie'}\n\nWybierz osoby pracujące:`,
+                    components: [new ActionRowBuilder().addComponents(osobySelect)],
+                    ephemeral: true
+                });
+            }
+
+            else if (customId === 'osoby_pracujace') {
+                const editSession = raportStore.getReport(interaction.user.id);
+                if (!editSession || !editSession.isEditing) return;
+
+                // Aktualizuj osoby pracujące
+                editSession.osobyPracujace = interaction.values;
+                raportStore.updateReport(interaction.user.id, { osobyPracujace: interaction.values });
+
+                // Pokaż wybór kierowcy
+                const kierowcaSelect = new StringSelectMenuBuilder()
+                    .setCustomId('kierowca')
+                    .setPlaceholder('Wybierz kierowcę')
+                    .addOptions(interaction.values.map(osoba => ({
+                        label: osoba,
+                        value: osoba
+                    })));
+
+                await interaction.update({
+                    content: `**Edycja raportu**\nMiejsce pracy: ${editSession.miejscePracy}\nAuto: ${editSession.auto}\nDieta: ${editSession.dieta ? 'Tak' : 'Nie'}\nOsoby: ${editSession.osobyPracujace.join(', ')}\n\nWybierz kierowcę:`,
+                    components: [new ActionRowBuilder().addComponents(kierowcaSelect)],
+                    ephemeral: true
+                });
+            }
+
+            else if (customId === 'kierowca') {
+                const editSession = raportStore.getReport(interaction.user.id);
+                if (!editSession || !editSession.isEditing) return;
+
+                // Aktualizuj kierowcę
+                editSession.kierowca = interaction.values[0];
+                raportStore.updateReport(interaction.user.id, { kierowca: interaction.values[0] });
+
+                // Pokaż podsumowanie i przyciski akcji
+                const actionButtons = new ActionRowBuilder()
+                    .addComponents(
+                        new ButtonBuilder()
+                            .setCustomId('save_edit')
+                            .setLabel('💾 Zapisz zmiany')
+                            .setStyle(ButtonStyle.Success),
+                        new ButtonBuilder()
+                            .setCustomId('cancel_edit')
+                            .setLabel('❌ Anuluj')
+                            .setStyle(ButtonStyle.Danger)
+                    );
+
+                await interaction.update({
+                    content: formatujRaport(editSession, true, editSession.data),
+                    components: [actionButtons],
+                    ephemeral: true
+                });
             }
         }
     } catch (error) {
