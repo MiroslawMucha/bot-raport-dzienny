@@ -6,7 +6,7 @@ const { validateTime } = require('./timeValidation');
 
 // Zmiana nazwy arkusza na prawidłową
 const SHEET_NAME = 'Arkusz1';  // Zmiana z 'Raporty' na 'Arkusz1'
-const SHEET_RANGE = 'A:I';     // Zmiana z A:J na A:I (9 kolumn)
+const SHEET_RANGE = 'A:J';     // Zmiana z A:I na A:J (10 kolumn)
 
 class GoogleSheetsService {
     constructor() {
@@ -45,8 +45,9 @@ class GoogleSheetsService {
 
             // Przygotuj dane do zapisu w kolejności zgodnej z arkuszem
             const values = [[
-                new Date().toISOString(),        // Data
-                raportData.username,             // Pracownik
+                new Date().toISOString(),        // Data utworzenia
+                raportData.pracownik,            // Pracownik (używamy pracownik zamiast username)
+                raportData.miejscePracy,         // Miejsce pracy (dodane)
                 raportData.czasRozpoczecia,      // Czas rozpoczęcia
                 raportData.czasZakonczenia,      // Czas zakończenia
                 raportData.dieta ? 'Tak' : 'Nie',// Dieta
@@ -56,7 +57,7 @@ class GoogleSheetsService {
                 'Aktywny'                        // Status
             ]];
 
-            // Zapisz do arkusza z poprawioną nazwą arkusza
+            // Zapisz do arkusza
             const response = await this.sheetsApi.spreadsheets.values.append({
                 spreadsheetId: process.env.GOOGLE_SHEET_ID,
                 range: `${SHEET_NAME}!${SHEET_RANGE}`,
@@ -75,7 +76,8 @@ class GoogleSheetsService {
     }
 
     validateRaportData(data) {
-        return data.username &&
+        return data.pracownik &&           // Zmienione z username na pracownik
+            data.miejscePracy &&           // Dodane
             data.czasRozpoczecia &&
             data.czasZakonczenia &&
             data.osobyPracujace?.length > 0 &&
@@ -91,6 +93,7 @@ class GoogleSheetsService {
             [
                 raportData.data,                 // Data
                 raportData.pracownik,            // Pracownik
+                raportData.miejscePracy,         // Miejsce pracy (dodane)
                 raportData.czasRozpoczecia,      // Czas rozpoczęcia
                 raportData.czasZakonczenia,      // Czas zakończenia
                 raportData.dieta ? 'Tak' : 'Nie',// Dieta
@@ -104,7 +107,7 @@ class GoogleSheetsService {
         try {
             await this.sheetsApi.spreadsheets.values.update({
                 spreadsheetId: process.env.GOOGLE_SHEET_ID,
-                range: `${SHEET_NAME}!A${rowIndex}:I${rowIndex}`,
+                range: `${SHEET_NAME}!A${rowIndex}:J${rowIndex}`,
                 valueInputOption: 'USER_ENTERED',
                 resource: { values }
             });
