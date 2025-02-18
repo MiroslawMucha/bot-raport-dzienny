@@ -175,7 +175,19 @@ client.on('interactionCreate', async interaction => {
                 const components = createFormComponents(interaction.guild);
                 await interaction.update({
                     content: `**Stan formularza:**\n
-📍 Miejsce pracy: ${updatedData.miejscePracy || 'nie wybrano'}`,
+📍 Miejsce pracy: ${updatedData.miejscePracy || 'nie wybrano'}
+[lista wyboru miejsca pracy]
+
+🚗 Auto: ${updatedData.auto || 'nie wybrano'}
+[lista wyboru auta]
+
+👥 Osoby pracujące: ${updatedData.osobyPracujace?.length ? updatedData.osobyPracujace.join(', ') : 'nie wybrano'}
+[lista wyboru osób]
+
+🧑‍✈️ Kierowca: ${updatedData.kierowca || 'nie wybrano'}
+[lista wyboru kierowcy]
+
+💰 Dieta: ${updatedData.dieta === undefined ? 'nie wybrano' : updatedData.dieta ? 'Tak' : 'Nie'}`,
                     components: [
                         components.miejscaPracySelect,
                         components.pojazdySelect,
