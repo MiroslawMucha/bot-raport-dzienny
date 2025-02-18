@@ -1,7 +1,7 @@
 // Komenda /raport do tworzenia nowych raportów
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, TextInputBuilder, TextInputStyle } = require('discord.js');
-const { MIEJSCA_PRACY, POJAZDY } = require('../config/config');
+const { MIEJSCA_PRACY, POJAZDY, CZAS } = require('../config/config');
 const googleSheets = require('../utils/googleSheets');
 const ChannelManager = require('../utils/channelManager');
 const raportStore = require('../utils/raportDataStore');
@@ -13,29 +13,18 @@ module.exports = {
         .setDescription('Utwórz nowy raport dzienny'),
 
     async execute(interaction) {
-        const raportData = raportStore.getReport(interaction.user.id);
+        // Inicjalizacja raportu w store
+        raportStore.initReport(interaction.user.id, interaction.user.username);
 
         // Utworzenie formularza z wyborem miejsca pracy
         const miejscaPracySelect = new StringSelectMenuBuilder()
             .setCustomId('miejsce_pracy')
             .setPlaceholder('Wybierz miejsce pracy')
             .addOptions(
-                MIEJSCA_PRACY.length >= 5 ? 
                 MIEJSCA_PRACY.map(miejsce => ({
                     label: miejsce,
                     value: miejsce
-                })) :
-                [
-                    ...MIEJSCA_PRACY.map(miejsce => ({
-                        label: miejsce,
-                        value: miejsce
-                    })),
-                    ...Array(5 - MIEJSCA_PRACY.length).fill(0).map((_, i) => ({
-                        label: `Miejsce ${MIEJSCA_PRACY.length + i + 1}`,
-                        value: `placeholder_${i}`,
-                        default: false
-                    }))
-                ]
+                }))
             );
 
         // Utworzenie formularza z wyborem pojazdu
@@ -43,63 +32,41 @@ module.exports = {
             .setCustomId('auto')
             .setPlaceholder('Wybierz pojazd')
             .addOptions(
-                POJAZDY.length >= 5 ?
                 POJAZDY.map(pojazd => ({
                     label: pojazd,
                     value: pojazd
-                })) :
-                [
-                    ...POJAZDY.map(pojazd => ({
-                        label: pojazd,
-                        value: pojazd
-                    })),
-                    ...Array(5 - POJAZDY.length).fill(0).map((_, i) => ({
-                        label: `Pojazd ${i + 1}`,
-                        value: `Pojazd ${i + 1}`
-                    }))
-                ]
+                }))
             );
 
-        // Dodaj nową funkcję do pobierania członków serwera
-        async function pobierzCzlonkowSerwera(guild) {
-            const members = await guild.members.fetch();
-            let options = members
-                .filter(member => !member.user.bot)
-                .map(member => ({
-                    label: member.displayName,
-                    value: member.displayName
-                }));
-
-            // Dodaj placeholdery tylko jeśli nie ma wystarczającej liczby członków
-            if (options.length < 5) {
-                console.log('Za mało członków, dodaję placeholdery...');
-                while (options.length < 5) {
-                    options.push({
-                        label: `Pracownik ${options.length + 1}`,
-                        value: `Pracownik ${options.length + 1}`,
-                        default: false
-                    });
-                }
-            }
-
-            console.log('Dostępne opcje:', options);
-            return options;
-        }
-
-        // W funkcji execute dodaj nowe pola formularza:
+        // Pobierz członków serwera
         const czlonkowie = await pobierzCzlonkowSerwera(interaction.guild);
 
+        // Dodajmy funkcję pomocniczą do uzupełniania opcji do minimum 5
+        function uzupelnijOpcjeDoMinimum(opcje, prefix = 'Opcja') {
+            const wynik = [...opcje];
+            while (wynik.length < 5) {
+                wynik.push({
+                    label: `${prefix} ${wynik.length + 1}`,
+                    value: `${prefix.toLowerCase()}_${wynik.length + 1}`,
+                    default: false
+                });
+            }
+            return wynik;
+        }
+
+        // Modyfikacja menu wyboru osób pracujących
         const osobyPracujaceSelect = new StringSelectMenuBuilder()
             .setCustomId('osoby_pracujace')
             .setPlaceholder('Wybierz osoby pracujące')
             .setMinValues(1)
             .setMaxValues(5)
-            .addOptions(czlonkowie);
+            .addOptions(uzupelnijOpcjeDoMinimum(czlonkowie, 'Pracownik'));
 
+        // Modyfikacja menu wyboru kierowcy
         const kierowcaSelect = new StringSelectMenuBuilder()
             .setCustomId('kierowca')
             .setPlaceholder('Wybierz kierowcę')
-            .addOptions(czlonkowie);
+            .addOptions(uzupelnijOpcjeDoMinimum(czlonkowie, 'Kierowca'));
 
         // Przyciski do wyboru diety
         const dietaButtons = new ActionRowBuilder()
@@ -114,20 +81,38 @@ module.exports = {
                     .setStyle(ButtonStyle.Danger)
             );
 
-        // Dodaj przyciski czasu po dietaButtons
-        const timeButtons = new ActionRowBuilder()
-            .addComponents(
-                new ButtonBuilder()
-                    .setCustomId('czas_rozpoczecia')
-                    .setLabel('⏰ Ustaw czas rozpoczęcia')
-                    .setStyle(ButtonStyle.Primary),
-                new ButtonBuilder()
-                    .setCustomId('czas_zakonczenia')
-                    .setLabel('⏰ Ustaw czas zakończenia')
-                    .setStyle(ButtonStyle.Primary)
-            );
+        // Tworzenie menu wyboru daty
+        const dateSelect = new StringSelectMenuBuilder()
+            .setCustomId('data_raportu')
+            .setPlaceholder('Wybierz datę')
+            .addOptions(CZAS.getDaty());
+
+        // Tworzenie menu wyboru godziny rozpoczęcia
+        const startHourSelect = new StringSelectMenuBuilder()
+            .setCustomId('godzina_rozpoczecia')
+            .setPlaceholder('Wybierz godzinę rozpoczęcia')
+            .addOptions(CZAS.getGodziny());
+
+        // Tworzenie menu wyboru minuty rozpoczęcia
+        const startMinuteSelect = new StringSelectMenuBuilder()
+            .setCustomId('minuta_rozpoczecia')
+            .setPlaceholder('Wybierz minutę rozpoczęcia')
+            .addOptions(CZAS.MINUTY);
+
+        // Tworzenie menu wyboru godziny zakończenia
+        const endHourSelect = new StringSelectMenuBuilder()
+            .setCustomId('godzina_zakonczenia')
+            .setPlaceholder('Wybierz godzinę zakończenia')
+            .addOptions(CZAS.getGodziny());
+
+        // Tworzenie menu wyboru minuty zakończenia
+        const endMinuteSelect = new StringSelectMenuBuilder()
+            .setCustomId('minuta_zakonczenia')
+            .setPlaceholder('Wybierz minutę zakończenia')
+            .addOptions(CZAS.MINUTY);
 
         try {
+            // Modyfikacja wysyłania odpowiedzi
             await interaction.reply({
                 content: 'Wypełnij formularz raportu:',
                 components: [
@@ -137,26 +122,43 @@ module.exports = {
                     new ActionRowBuilder().addComponents(kierowcaSelect),
                     dietaButtons
                 ],
-                ephemeral: true
+                flags: ['Ephemeral'] // Zamiast ephemeral: true
             });
 
-            // Wyślij dodatkową wiadomość z wyborem czasu
+            // Wysyłamy dodatkową wiadomość z wyborem czasu
             await interaction.followUp({
-                content: 'Ustaw czas pracy:',
-                components: [timeButtons],
+                content: 'Wybierz czas pracy:',
+                components: [
+                    new ActionRowBuilder().addComponents(dateSelect),
+                    new ActionRowBuilder().addComponents(startHourSelect),
+                    new ActionRowBuilder().addComponents(startMinuteSelect),
+                    new ActionRowBuilder().addComponents(endHourSelect),
+                    new ActionRowBuilder().addComponents(endMinuteSelect)
+                ],
                 ephemeral: true
             });
         } catch (error) {
             console.error('Błąd podczas wysyłania formularza:', error);
             await interaction.reply({ 
                 content: 'Wystąpił błąd podczas tworzenia formularza.', 
-                ephemeral: true 
+                flags: ['Ephemeral'] // Zamiast ephemeral: true
             });
         }
     },
     wyslijRaport,
     formatujRaport
 };
+
+// Funkcja pomocnicza do pobierania członków serwera
+async function pobierzCzlonkowSerwera(guild) {
+    const members = await guild.members.fetch();
+    return members
+        .filter(member => !member.user.bot)
+        .map(member => ({
+            label: member.displayName,
+            value: member.displayName
+        }));
+}
 
 // Funkcja wysyłająca raport
 async function wyslijRaport(interaction, raportData) {
@@ -208,5 +210,16 @@ ${header}
 👥 Osoby pracujące: ${raportData.osobyPracujace.join(', ')}
 🚗 Auto: ${raportData.auto}
 🧑‍✈️ Kierowca: ${raportData.kierowca}
+    `.trim();
+}
+
+// Funkcja pomocnicza do formatowania stanu formularza
+function formatujStanFormularza(state) {
+    return `
+📍 Miejsce pracy: ${state.miejscePracy || 'nie wybrano'}
+🚗 Auto: ${state.auto || 'nie wybrano'}
+👥 Osoby pracujące: ${state.osobyPracujace.length > 0 ? state.osobyPracujace.join(', ') : 'nie wybrano'}
+🧑‍✈️ Kierowca: ${state.kierowca || 'nie wybrano'}
+💰 Dieta: ${state.dieta === null ? 'nie wybrano' : state.dieta ? 'Tak' : 'Nie'}
     `.trim();
 } 

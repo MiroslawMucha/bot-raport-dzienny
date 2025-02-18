@@ -45,5 +45,34 @@ module.exports = {
             'Kierowca',
             'Status'
         ]
+    },
+
+    // Dodajemy konfigurację dla czasu
+    CZAS: {
+        MINUTY: [
+            { label: '00', value: '00' },
+            { label: '30', value: '30' }
+        ],
+        // Funkcja generująca godziny 00-23
+        getGodziny: () => {
+            return Array.from({ length: 24 }, (_, i) => ({
+                label: `${String(i).padStart(2, '0')}:00`,
+                value: String(i).padStart(2, '0')
+            }));
+        },
+        // Funkcja generująca daty (dziś i 20 dni wstecz)
+        getDaty: () => {
+            const daty = [];
+            for (let i = 0; i < 21; i++) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                const formattedDate = `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}.${date.getFullYear()}`;
+                daty.push({
+                    label: i === 0 ? `Dzisiaj (${formattedDate})` : formattedDate,
+                    value: formattedDate
+                });
+            }
+            return daty;
+        }
     }
 }; 
