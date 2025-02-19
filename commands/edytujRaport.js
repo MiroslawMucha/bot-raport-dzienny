@@ -63,13 +63,7 @@ module.exports = {
                 raportStore.updateReport(interaction.user.id, initialData);
 
                 // Tworzenie komponentów formularza
-                const components = {
-                    miejscaPracySelect: new ActionRowBuilder().addComponents(miejscaPracySelect),
-                    pojazdySelect: new ActionRowBuilder().addComponents(pojazdySelect),
-                    osobyPracujaceSelect: new ActionRowBuilder().addComponents(osobyPracujaceSelect),
-                    kierowcaSelect: new ActionRowBuilder().addComponents(kierowcaSelect),
-                    dietaButtons: dietaButtons
-                };
+                const components = interaction.client.createFormComponents(interaction.guild);
 
                 // Wysłanie formularza edycji
                 await i.update({
@@ -80,10 +74,10 @@ module.exports = {
 🧑‍✈️ Kierowca: ${wybranyRaport.kierowca}
 💰 Dieta: ${wybranyRaport.dieta ? 'Tak' : 'Nie'}`,
                     components: [
-                        components.miejscaPracySelect,
-                        components.pojazdySelect,
-                        components.osobyPracujaceSelect,
-                        components.kierowcaSelect,
+                        new ActionRowBuilder().addComponents(components.miejscaPracySelect),
+                        new ActionRowBuilder().addComponents(components.pojazdySelect),
+                        new ActionRowBuilder().addComponents(components.osobyPracujaceSelect),
+                        new ActionRowBuilder().addComponents(components.kierowcaSelect),
                         components.dietaButtons
                     ]
                 });
