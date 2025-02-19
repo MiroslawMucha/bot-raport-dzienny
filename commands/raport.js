@@ -14,105 +14,85 @@ module.exports = {
         .setDescription('Utwórz nowy raport dzienny'),
 
     async execute(interaction) {
-        // Inicjalizacja raportu w store
-        raportStore.initReport(interaction.user.id, interaction.user.username);
-
-        // Utworzenie formularza z wyborem miejsca pracy
-        const miejscaPracySelect = new StringSelectMenuBuilder()
-            .setCustomId('miejsce_pracy')
-            .setPlaceholder('Wybierz miejsce pracy')
-            .addOptions(
-                MIEJSCA_PRACY.map(miejsce => ({
-                    label: miejsce,
-                    value: miejsce
-                }))
-            );
-
-        // Utworzenie formularza z wyborem pojazdu
-        const pojazdySelect = new StringSelectMenuBuilder()
-            .setCustomId('auto')
-            .setPlaceholder('Wybierz pojazd')
-            .addOptions(
-                POJAZDY.map(pojazd => ({
-                    label: pojazd,
-                    value: pojazd
-                }))
-            );
-
-        // Pobierz członków serwera
-        const czlonkowie = await pobierzCzlonkowSerwera(interaction.guild);
-
-        // Dodajmy funkcję pomocniczą do uzupełniania opcji do minimum 5
-        function uzupelnijOpcjeDoMinimum(opcje, prefix = 'Opcja') {
-            const wynik = [...opcje];
-            while (wynik.length < 5) {
-                wynik.push({
-                    label: `${prefix} ${wynik.length + 1}`,
-                    value: `${prefix.toLowerCase()}_${wynik.length + 1}`,
-                    default: false
-                });
-            }
-            return wynik;
-        }
-
-        // Modyfikacja menu wyboru osób pracujących
-        const osobyPracujaceSelect = new StringSelectMenuBuilder()
-            .setCustomId('osoby_pracujace')
-            .setPlaceholder('Wybierz osoby pracujące')
-            .setMinValues(1)
-            .setMaxValues(5)
-            .addOptions(uzupelnijOpcjeDoMinimum(czlonkowie, 'Pracownik'));
-
-        // Modyfikacja menu wyboru kierowcy
-        const kierowcaSelect = new StringSelectMenuBuilder()
-            .setCustomId('kierowca')
-            .setPlaceholder('Wybierz kierowcę')
-            .addOptions(uzupelnijOpcjeDoMinimum(czlonkowie, 'Kierowca'));
-
-        // Przyciski do wyboru diety
-        const dietaButtons = new ActionRowBuilder()
-            .addComponents(
-                new ButtonBuilder()
-                    .setCustomId('dieta_tak')
-                    .setLabel('Dieta: Tak')
-                    .setStyle(ButtonStyle.Success),
-                new ButtonBuilder()
-                    .setCustomId('dieta_nie')
-                    .setLabel('Dieta: Nie')
-                    .setStyle(ButtonStyle.Danger)
-            );
-
-        // Tworzenie menu wyboru daty
-        const dateSelect = new StringSelectMenuBuilder()
-            .setCustomId('data_raportu')
-            .setPlaceholder('Wybierz datę')
-            .addOptions(CZAS.getDaty());
-
-        // Tworzenie menu wyboru godziny rozpoczęcia
-        const startHourSelect = new StringSelectMenuBuilder()
-            .setCustomId('godzina_rozpoczecia')
-            .setPlaceholder('Wybierz godzinę rozpoczęcia')
-            .addOptions(CZAS.getGodziny());
-
-        // Tworzenie menu wyboru minuty rozpoczęcia
-        const startMinuteSelect = new StringSelectMenuBuilder()
-            .setCustomId('minuta_rozpoczecia')
-            .setPlaceholder('Wybierz minutę rozpoczęcia')
-            .addOptions(CZAS.MINUTY);
-
-        // Tworzenie menu wyboru godziny zakończenia
-        const endHourSelect = new StringSelectMenuBuilder()
-            .setCustomId('godzina_zakonczenia')
-            .setPlaceholder('Wybierz godzinę zakończenia')
-            .addOptions(CZAS.getGodziny());
-
-        // Tworzenie menu wyboru minuty zakończenia
-        const endMinuteSelect = new StringSelectMenuBuilder()
-            .setCustomId('minuta_zakonczenia')
-            .setPlaceholder('Wybierz minutę zakończenia')
-            .addOptions(CZAS.MINUTY);
-
         try {
+            // Miejsce pracy
+            const miejscaPracySelect = new StringSelectMenuBuilder()
+                .setCustomId('miejsce_pracy')
+                .setPlaceholder('Wybierz miejsce pracy')
+                .addOptions(
+                    MIEJSCA_PRACY.map(miejsce => ({
+                        label: miejsce,
+                        value: miejsce
+                    }))
+                );
+
+            // Pojazdy
+            const pojazdySelect = new StringSelectMenuBuilder()
+                .setCustomId('auto')
+                .setPlaceholder('Wybierz pojazd')
+                .addOptions(
+                    POJAZDY.map(pojazd => ({
+                        label: pojazd,
+                        value: pojazd
+                    }))
+                );
+
+            // Osoby pracujące
+            const osobyPracujaceSelect = new StringSelectMenuBuilder()
+                .setCustomId('osoby_pracujace')
+                .setPlaceholder('Wybierz osoby pracujące')
+                .setMinValues(1)
+                .setMaxValues(5);
+
+            // Kierowca
+            const kierowcaSelect = new StringSelectMenuBuilder()
+                .setCustomId('kierowca')
+                .setPlaceholder('Wybierz kierowcę');
+
+            // Przyciski diety
+            const dietaButtons = new ActionRowBuilder()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId('dieta_tak')
+                        .setLabel('Dieta: Tak')
+                        .setStyle(ButtonStyle.Success),
+                    new ButtonBuilder()
+                        .setCustomId('dieta_nie')
+                        .setLabel('Dieta: Nie')
+                        .setStyle(ButtonStyle.Danger)
+                );
+
+            // Czas
+            const dateSelect = new StringSelectMenuBuilder()
+                .setCustomId('data_raportu')
+                .setPlaceholder('Wybierz datę')
+                .addOptions(CZAS.getDaty());
+
+            const startHourSelect = new StringSelectMenuBuilder()
+                .setCustomId('godzina_rozpoczecia')
+                .setPlaceholder('Wybierz godzinę rozpoczęcia')
+                .addOptions(CZAS.getGodziny());
+
+            const startMinuteSelect = new StringSelectMenuBuilder()
+                .setCustomId('minuta_rozpoczecia')
+                .setPlaceholder('Wybierz minutę rozpoczęcia')
+                .addOptions(CZAS.MINUTY);
+
+            const endHourSelect = new StringSelectMenuBuilder()
+                .setCustomId('godzina_zakonczenia')
+                .setPlaceholder('Wybierz godzinę zakończenia')
+                .addOptions(CZAS.getGodziny());
+
+            const endMinuteSelect = new StringSelectMenuBuilder()
+                .setCustomId('minuta_zakonczenia')
+                .setPlaceholder('Wybierz minutę zakończenia')
+                .addOptions(CZAS.MINUTY);
+
+            // Pobierz członków serwera dla listy osób pracujących i kierowców
+            const members = await pobierzCzlonkowSerwera(interaction.guild);
+            osobyPracujaceSelect.addOptions(members);
+            kierowcaSelect.addOptions(members);
+
             // Modyfikacja wysyłania odpowiedzi
             await interaction.reply({
                 content: 'Wypełnij formularz raportu:',
@@ -123,7 +103,7 @@ module.exports = {
                     new ActionRowBuilder().addComponents(kierowcaSelect),
                     dietaButtons
                 ],
-                flags: ['Ephemeral'] // Zamiast ephemeral: true
+                ephemeral: true
             });
 
             // Wysyłamy dodatkową wiadomość z wyborem czasu
@@ -142,7 +122,7 @@ module.exports = {
             console.error('Błąd podczas wysyłania formularza:', error);
             await interaction.reply({ 
                 content: 'Wystąpił błąd podczas tworzenia formularza.', 
-                flags: ['Ephemeral'] // Zamiast ephemeral: true
+                ephemeral: true
             });
         }
     },
