@@ -3,6 +3,8 @@ const { ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
 const googleSheets = require('../utils/googleSheets');
 const { wyslijRaport, formatujRaport } = require('./raport');
 const ChannelManager = require('../utils/channelManager');
+const raportStore = require('../utils/raportStore');
+const { createFormComponents } = require('../utils/formBuilder');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -51,8 +53,35 @@ module.exports = {
             const wybranyRaport = raporty.find(r => r.id === i.values[0]);
             if (wybranyRaport) {
                 collector.stop();
-                // Używamy istniejącej logiki formularza z raport.js
-                await wyslijRaport(interaction, wybranyRaport, true);
+                
+                // Inicjalizacja formularza edycji
+                raportStore.initReport(interaction.user.id, interaction.user.username);
+                const initialData = {
+                    ...wybranyRaport,
+                    isEdit: true, // Oznaczamy, że to edycja
+                    originalId: wybranyRaport.id
+                };
+                raportStore.updateReport(interaction.user.id, initialData);
+
+                // Tworzenie komponentów formularza
+                const components = createFormComponents(interaction.guild);
+
+                // Wysłanie formularza edycji
+                await i.update({
+                    content: `Edycja raportu z ID: ${wybranyRaport.id}\n\n**Stan formularza:**\n
+📍 Miejsce pracy: ${wybranyRaport.miejscePracy}
+🚗 Auto: ${wybranyRaport.auto}
+👥 Osoby pracujące: ${wybranyRaport.osobyPracujace.join(', ')}
+🧑‍✈️ Kierowca: ${wybranyRaport.kierowca}
+💰 Dieta: ${wybranyRaport.dieta ? 'Tak' : 'Nie'}`,
+                    components: [
+                        new ActionRowBuilder().addComponents(components.miejscaPracySelect),
+                        new ActionRowBuilder().addComponents(components.pojazdySelect),
+                        new ActionRowBuilder().addComponents(components.osobyPracujaceSelect),
+                        new ActionRowBuilder().addComponents(components.kierowcaSelect),
+                        components.dietaButtons
+                    ]
+                });
             }
         });
     }

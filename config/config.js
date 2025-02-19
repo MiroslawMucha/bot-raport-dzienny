@@ -31,7 +31,7 @@ module.exports = {
     // Konfiguracja arkusza Google
     GOOGLE_SHEETS: {
         // Zakres komórek w arkuszu
-        RANGE: 'Raporty!A:J',
+        RANGE: 'Arkusz1!A:J',
         // Nazwy kolumn w arkuszu
         COLUMNS: [
             'Data',

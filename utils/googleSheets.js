@@ -5,8 +5,8 @@ const { GOOGLE_SHEETS } = require('../config/config');
 const { validateTime } = require('./timeValidation');
 
 // Zmiana nazwy arkusza na prawidłową
-const SHEET_NAME = 'Arkusz1';  // Zmiana z 'Raporty' na 'Arkusz1'
-const SHEET_RANGE = 'A:I';     // Zmiana z A:J na A:I (9 kolumn)
+const SHEET_NAME = 'Arkusz1';  // ✅ Poprawiona nazwa arkusza
+const SHEET_RANGE = 'A:J';     // ✅ Poprawny zakres
 
 class GoogleSheetsService {
     constructor() {
@@ -48,7 +48,7 @@ class GoogleSheetsService {
 
             // Przygotuj dane do zapisu
             const values = [[
-                reportId,                        // ID raportu (Data)
+                reportId,                        // Data (ID raportu)
                 raportData.username,             // Pracownik
                 raportData.miejscePracy,         // Miejsce pracy
                 raportData.czasRozpoczecia,      // Czas rozpoczęcia
@@ -105,7 +105,7 @@ class GoogleSheetsService {
         try {
             await this.sheetsApi.spreadsheets.values.update({
                 spreadsheetId: process.env.GOOGLE_SHEET_ID,
-                range: `${SHEET_NAME}!A${rowIndex}:I${rowIndex}`,
+                range: `${SHEET_NAME}!A${rowIndex}:J${rowIndex}`,
                 valueInputOption: 'USER_ENTERED',
                 resource: { values }
             });
@@ -226,7 +226,7 @@ class GoogleSheetsService {
             // 2. Skopiuj stary raport do historia_zmian
             await this.sheetsApi.spreadsheets.values.append({
                 spreadsheetId: process.env.GOOGLE_SHEET_ID,
-                range: 'historia_zmian!A:J',
+                range: 'historia_zmian!A:J',  // ✅ Poprawny zakres
                 valueInputOption: 'USER_ENTERED',
                 resource: {
                     values: [rows[rowIndex]]

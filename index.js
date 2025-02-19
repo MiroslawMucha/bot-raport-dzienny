@@ -9,6 +9,9 @@ console.log('Env variables loaded:', {
     envPath: require('dotenv').config().parsed ? 'loaded' : 'not loaded'
 });
 
+// Dodaj import konfiguracji na początku pliku
+const { MIEJSCA_PRACY, POJAZDY, CZAS } = require('./config/config');
+
 // Inicjalizacja klienta Discord z odpowiednimi uprawnieniami
 const client = new Client({
     intents: [
@@ -140,16 +143,18 @@ client.on('interactionCreate', async interaction => {
         } 
         else if (interaction.type === InteractionType.MessageComponent) {
             const userData = raportStore.getReport(interaction.user.id);
-            console.log('Dane użytkownika:', userData);
-
+            
             if (!userData) {
                 await interaction.reply({
-                    content: 'Sesja wygasła. Użyj komendy /raport ponownie.',
+                    content: 'Sesja wygasła. Użyj komendy ponownie.',
                     ephemeral: true
                 });
                 return;
             }
 
+            // Dodaj sprawdzenie czy to edycja
+            const isEdit = userData.isEdit;
+            
             const { customId } = interaction;
             let updateData = {};
 
@@ -288,7 +293,7 @@ client.on('interactionCreate', async interaction => {
                     // Dodaj pole pracownik przed wysłaniem
                     currentData.pracownik = currentData.username;
 
-                    await wyslijRaport(interaction, currentData);
+                    await wyslijRaport(interaction, currentData, isEdit);
                     raportStore.deleteReport(interaction.user.id);
                 } catch (error) {
                     console.error('Błąd podczas wysyłania raportu:', error);
