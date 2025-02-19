@@ -3,7 +3,7 @@ const { ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
 const googleSheets = require('../utils/googleSheets');
 const { wyslijRaport, formatujRaport } = require('./raport');
 const ChannelManager = require('../utils/channelManager');
-const raportStore = require('../utils/raportStore');
+const raportStore = require('../utils/raportDataStore');
 const { createFormComponents } = require('../utils/formBuilder');
 
 module.exports = {
