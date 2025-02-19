@@ -22,6 +22,10 @@ const {
     pobierzCzlonkowSerwera 
 } = require('./utils/timeValidation');
 
+// Dodajmy na początku pliku potrzebne importy
+const { InteractionType } = require('discord.js');
+const { Collection } = require('discord.js');
+
 // Inicjalizacja klienta Discord z odpowiednimi uprawnieniami
 const client = new Client({
     intents: [
@@ -31,7 +35,7 @@ const client = new Client({
     ]
 });
 
-// Kolekcja do przechowywania komend
+// Inicjalizacja kolekcji komend
 client.commands = new Collection();
 
 // Ładowanie komend z folderu commands
@@ -54,16 +58,18 @@ const {
     validateAndSaveChanges 
 } = require('./commands/edytujRaport');
 
+// Załaduj komendy
+const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
 for (const file of commandFiles) {
-    const filePath = path.join(commandsPath, file);
-    const command = require(filePath);
+    const command = require(`./commands/${file}`);
     client.commands.set(command.data.name, command);
-    console.log('Załadowano komendę:', command.data.name);
+    console.log(`Załadowano komendę: ${command.data.name}`);
 }
 
 // Obsługa eventu ready
 client.once('ready', () => {
     console.log(`Zalogowano jako ${client.user.tag}`);
+    console.log('Załadowane komendy:', Array.from(client.commands.keys()));
 });
 
 // Dodajemy okresowe czyszczenie nieaktywnych formularzy
@@ -71,8 +77,10 @@ setInterval(() => {
     raportStore.cleanupStaleReports();
 }, 5 * 60 * 1000); // Co 5 minut
 
-// Obsługa interakcji (komendy slash)
+// Obsługa interakcji
 client.on('interactionCreate', async interaction => {
+    console.log(`Otrzymano interakcję: { type: ${interaction.type}, commandName: ${interaction.commandName}, user: '${interaction.user.username}' }`);
+
     try {
         // Obsługa komend slash
         if (interaction.type === InteractionType.ApplicationCommand) {
@@ -82,82 +90,54 @@ client.on('interactionCreate', async interaction => {
             try {
                 await command.execute(interaction);
             } catch (error) {
-                console.error('Błąd podczas wykonywania komendy:', error);
-                const errorMessage = '❌ Wystąpił błąd podczas wykonywania komendy.';
-                
+                console.error('❌ Błąd podczas wykonywania komendy:', error);
                 if (!interaction.replied && !interaction.deferred) {
-                    await interaction.reply({ content: errorMessage, ephemeral: true });
-                } else {
-                    await interaction.followUp({ content: errorMessage, ephemeral: true });
+                    await interaction.reply({ 
+                        content: '❌ Wystąpił błąd podczas wykonywania komendy.',
+                        ephemeral: true 
+                    });
                 }
             }
             return;
         }
 
-        // Obsługa interakcji z komponentami (select menu, buttons)
+        // Obsługa interakcji z komponentami (tak jak w raport.js)
         if (interaction.isStringSelectMenu() || interaction.isButton()) {
             const { customId } = interaction;
             
-            // Obsługa wyboru raportu do edycji
-            if (customId === 'select_raport_to_edit') {
-                const selectedRowIndex = interaction.values[0];
-                const editableReports = await googleSheets.getEditableReports(
-                    interaction.user.username
-                );
-                
-                const selectedReport = editableReports.find(
-                    r => r.rowIndex.toString() === selectedRowIndex
-                );
+            const userData = raportStore.getReport(interaction.user.id);
+            console.log('Dane użytkownika:', userData);
 
-                if (selectedReport) {
-                    // Inicjalizacja sesji edycji
-                    raportStore.initEditSession(interaction.user.id, selectedReport);
-
-                    // Pokaż pierwszy formularz edycji
-                    const miejscaPracySelect = new StringSelectMenuBuilder()
-                        .setCustomId('miejsce_pracy')
-                        .setPlaceholder('Wybierz miejsce pracy')
-                        .addOptions(MIEJSCA_PRACY.map(miejsce => ({
-                            label: miejsce,
-                            value: miejsce,
-                            default: miejsce === selectedReport.miejscePracy
-                        })));
-
-                    const row = new ActionRowBuilder().addComponents(miejscaPracySelect);
-
-                    await interaction.update({
-                        content: `**Edycja raportu z ${selectedReport.data}**\n\nAktualne miejsce pracy: ${selectedReport.miejscePracy}\nWybierz nowe miejsce pracy lub pozostaw bez zmian:`,
-                        components: [row],
-                        ephemeral: true
-                    });
-                }
-            }
-            // Obsługa zmiany miejsca pracy
-            else if (customId === 'miejsce_pracy') {
-                const editSession = raportStore.getReport(interaction.user.id);
-                if (!editSession?.isEditing) return;
-
-                // Aktualizuj miejsce pracy
-                const miejscePracy = interaction.values[0];
-                raportStore.updateReport(interaction.user.id, { miejscePracy });
-
-                // Pokaż wybór auta
-                const autoSelect = new StringSelectMenuBuilder()
-                    .setCustomId('auto')
-                    .setPlaceholder('Wybierz auto')
-                    .addOptions(POJAZDY.map(auto => ({
-                        label: auto,
-                        value: auto,
-                        default: auto === editSession.auto
-                    })));
-
-                const row = new ActionRowBuilder().addComponents(autoSelect);
-
-                await interaction.update({
-                    content: `**Edycja raportu**\nMiejsce pracy: ${miejscePracy}\n\nWybierz auto:`,
-                    components: [row],
+            if (!userData) {
+                await interaction.reply({
+                    content: 'Sesja wygasła. Użyj komendy ponownie.',
                     ephemeral: true
                 });
+                return;
+            }
+
+            let updateData = {};
+
+            // Obsługa wyboru miejsca pracy, auta, osób i kierowcy
+            if (customId === 'miejsce_pracy' || customId === 'auto' || 
+                customId === 'osoby_pracujace' || customId === 'kierowca') {
+                
+                // Aktualizuj odpowiednie pole
+                if (customId === 'miejsce_pracy') {
+                    updateData.miejscePracy = interaction.values[0];
+                } else if (customId === 'auto') {
+                    updateData.auto = interaction.values[0];
+                } else if (customId === 'osoby_pracujace') {
+                    updateData.osobyPracujace = interaction.values;
+                } else if (customId === 'kierowca') {
+                    updateData.kierowca = interaction.values[0];
+                }
+
+                // Aktualizuj dane w store
+                const updatedData = raportStore.updateReport(interaction.user.id, updateData);
+                
+                // Kontynuuj formularz
+                await wyslijRaport(interaction, updatedData);
             }
         }
     } catch (error) {
@@ -168,13 +148,13 @@ client.on('interactionCreate', async interaction => {
                 ephemeral: true
             });
         }
-        raportStore.deleteReport(interaction.user.id);
     }
 });
 
 // Dodaj więcej logów debugowania
 client.on('ready', () => {
     console.log(`Zalogowano jako ${client.user.tag}`);
+    console.log('Załadowane komendy:', Array.from(client.commands.keys()));
 });
 
 client.on('error', (error) => {
