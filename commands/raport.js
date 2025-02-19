@@ -36,17 +36,35 @@ module.exports = {
                     }))
                 );
 
+            // Dodajmy funkcję pomocniczą do uzupełniania opcji do minimum 5
+            function uzupelnijOpcjeDoMinimum(opcje, prefix = 'Opcja') {
+                const wynik = [...opcje];
+                while (wynik.length < 5) {
+                    wynik.push({
+                        label: `${prefix} ${wynik.length + 1}`,
+                        value: `${prefix.toLowerCase()}_${wynik.length + 1}`,
+                        default: false
+                    });
+                }
+                return wynik;
+            }
+
+            // Pobierz członków serwera dla listy osób pracujących i kierowców
+            const members = await pobierzCzlonkowSerwera(interaction.guild);
+
             // Osoby pracujące
             const osobyPracujaceSelect = new StringSelectMenuBuilder()
                 .setCustomId('osoby_pracujace')
                 .setPlaceholder('Wybierz osoby pracujące')
                 .setMinValues(1)
-                .setMaxValues(5);
+                .setMaxValues(5)
+                .addOptions(uzupelnijOpcjeDoMinimum(members, 'Pracownik'));
 
             // Kierowca
             const kierowcaSelect = new StringSelectMenuBuilder()
                 .setCustomId('kierowca')
-                .setPlaceholder('Wybierz kierowcę');
+                .setPlaceholder('Wybierz kierowcę')
+                .addOptions(uzupelnijOpcjeDoMinimum(members, 'Kierowca'));
 
             // Przyciski diety
             const dietaButtons = new ActionRowBuilder()
@@ -87,11 +105,6 @@ module.exports = {
                 .setPlaceholder('Wybierz minutę zakończenia')
                 .addOptions(CZAS.MINUTY);
 
-            // Pobierz członków serwera dla listy osób pracujących i kierowców
-            const members = await pobierzCzlonkowSerwera(interaction.guild);
-            osobyPracujaceSelect.addOptions(members);
-            kierowcaSelect.addOptions(members);
-
             // Modyfikacja wysyłania odpowiedzi
             await interaction.reply({
                 content: 'Wypełnij formularz raportu:',
@@ -102,7 +115,7 @@ module.exports = {
                     new ActionRowBuilder().addComponents(kierowcaSelect),
                     dietaButtons
                 ],
-                ephemeral: true
+                flags: ['Ephemeral']
             });
 
             // Wysyłamy dodatkową wiadomość z wyborem czasu
@@ -115,13 +128,13 @@ module.exports = {
                     new ActionRowBuilder().addComponents(endHourSelect),
                     new ActionRowBuilder().addComponents(endMinuteSelect)
                 ],
-                ephemeral: true
+                flags: ['Ephemeral']
             });
         } catch (error) {
             console.error('Błąd podczas wysyłania formularza:', error);
             await interaction.reply({ 
                 content: 'Wystąpił błąd podczas tworzenia formularza.', 
-                ephemeral: true
+                flags: ['Ephemeral']
             });
         }
     },
@@ -206,7 +219,7 @@ ${header}
 👷‍♂️ Pracownik: ${raportData.pracownik}
 📍 Miejsce pracy: ${raportData.miejscePracy}
 ⏳ Czas pracy: ${raportData.czasRozpoczecia} - ${raportData.czasZakonczenia}
-💰 Dieta / Delegacja: ${raportData.dieta ? 'Tak' : 'Nie'}
+�� Dieta / Delegacja: ${raportData.dieta ? 'Tak' : 'Nie'}
 👥 Osoby pracujące: ${raportData.osobyPracujace.join(', ')}
 🚗 Auto: ${raportData.auto}
 🧑‍✈️ Kierowca: ${raportData.kierowca}
