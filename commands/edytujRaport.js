@@ -4,7 +4,6 @@ const googleSheets = require('../utils/googleSheets');
 const { wyslijRaport, formatujRaport } = require('./raport');
 const ChannelManager = require('../utils/channelManager');
 const raportStore = require('../utils/raportDataStore');
-const { createFormComponents } = require('../utils/formBuilder');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -64,7 +63,13 @@ module.exports = {
                 raportStore.updateReport(interaction.user.id, initialData);
 
                 // Tworzenie komponentów formularza
-                const components = createFormComponents(interaction.guild);
+                const components = {
+                    miejscaPracySelect: new ActionRowBuilder().addComponents(miejscaPracySelect),
+                    pojazdySelect: new ActionRowBuilder().addComponents(pojazdySelect),
+                    osobyPracujaceSelect: new ActionRowBuilder().addComponents(osobyPracujaceSelect),
+                    kierowcaSelect: new ActionRowBuilder().addComponents(kierowcaSelect),
+                    dietaButtons: dietaButtons
+                };
 
                 // Wysłanie formularza edycji
                 await i.update({
@@ -75,10 +80,10 @@ module.exports = {
 🧑‍✈️ Kierowca: ${wybranyRaport.kierowca}
 💰 Dieta: ${wybranyRaport.dieta ? 'Tak' : 'Nie'}`,
                     components: [
-                        new ActionRowBuilder().addComponents(components.miejscaPracySelect),
-                        new ActionRowBuilder().addComponents(components.pojazdySelect),
-                        new ActionRowBuilder().addComponents(components.osobyPracujaceSelect),
-                        new ActionRowBuilder().addComponents(components.kierowcaSelect),
+                        components.miejscaPracySelect,
+                        components.pojazdySelect,
+                        components.osobyPracujaceSelect,
+                        components.kierowcaSelect,
                         components.dietaButtons
                     ]
                 });
