@@ -160,14 +160,25 @@ async function pobierzCzlonkowSerwera(guild) {
         }));
 }
 
-// Funkcja wysyłająca raport
-async function wyslijRaport(interaction, raportData) {
-    // Zapisanie do Google Sheets
-    const zapisano = await googleSheets.dodajRaport(raportData);
+// Modyfikacja funkcji wyslijRaport aby obsługiwała tryb edycji
+async function wyslijRaport(interaction, raportData, isEdit = false) {
+    let zapisano;
+    
+    if (isEdit) {
+        // Jeśli to edycja, używamy aktualizujRaportZHistoria
+        const result = await googleSheets.aktualizujRaportZHistoria(raportData.id, raportData);
+        zapisano = result.success;
+        if (zapisano) {
+            raportData.id = result.newId; // Aktualizujemy ID o nowy numer edycji
+        }
+    } else {
+        // Jeśli to nowy raport, używamy standardowego dodajRaport
+        zapisano = await googleSheets.dodajRaport(raportData);
+    }
 
     if (zapisano) {
         // Formatowanie wiadomości raportu
-        const raportMessage = formatujRaport(raportData, false); // false = nie jest edycją
+        const raportMessage = formatujRaport(raportData, isEdit);
 
         // Wysłanie na główny kanał raportów
         const kanalRaporty = interaction.guild.channels.cache.get(process.env.KANAL_RAPORTY_ID);
@@ -179,17 +190,26 @@ async function wyslijRaport(interaction, raportData) {
             interaction.user
         );
 
+        if (isEdit) {
+            // Jeśli to edycja, dodaj informację o aktualizacji
+            await kanalPrywatny.send('⚠️ Poprzedni raport został zaktualizowany ⚠️');
+        }
+
         // Wysłanie na prywatny kanał użytkownika
         await kanalPrywatny.send(raportMessage);
 
         // Wysłanie potwierdzenia
         await interaction.followUp({
-            content: 'Raport został pomyślnie zapisany i wysłany na odpowiednie kanały!',
+            content: isEdit ? 
+                'Raport został pomyślnie zaktualizowany!' : 
+                'Raport został pomyślnie zapisany!',
             ephemeral: true
         });
     } else {
         await interaction.followUp({
-            content: 'Wystąpił błąd podczas zapisywania raportu!',
+            content: isEdit ?
+                'Wystąpił błąd podczas aktualizacji raportu!' :
+                'Wystąpił błąd podczas zapisywania raportu!',
             ephemeral: true
         });
     }
