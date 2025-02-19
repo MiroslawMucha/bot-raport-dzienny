@@ -1,5 +1,5 @@
 // Główny plik aplikacji
-const { Client, GatewayIntentBits, Collection, InteractionType, ModalBuilder, TextInputBuilder, ActionRowBuilder, TextInputStyle, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, InteractionType } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
@@ -14,19 +14,18 @@ console.log('Env variables loaded:', {
     envPath: require('dotenv').config().parsed ? 'loaded' : 'not loaded'
 });
 
-// Na początku pliku, dodaj import konfiguracji
+// Importy modułów
 const { MIEJSCA_PRACY, POJAZDY } = require('./config/config');
-
-// Dodajmy brakujące importy na początku pliku
-const { 
-    pobierzCzlonkowSerwera 
-} = require('./utils/timeValidation');
+const { pobierzCzlonkowSerwera } = require('./utils/timeValidation');
+const raportStore = require('./utils/raportDataStore');
+const { wyslijRaport } = require('./commands/raport');
+const googleSheets = require('./utils/googleSheets');
+const ChannelManager = require('./utils/channelManager');
 
 // Dodajmy na początku pliku potrzebne importy
-const { InteractionType } = require('discord.js');
 const { Collection } = require('discord.js');
 
-// Inicjalizacja klienta Discord z odpowiednimi uprawnieniami
+// Inicjalizacja klienta Discord
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -37,8 +36,6 @@ const client = new Client({
 
 // Inicjalizacja kolekcji komend
 client.commands = new Collection();
-
-// Ładowanie komend z folderu commands
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
 
@@ -46,9 +43,7 @@ const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('
 const raportStore = require('./utils/raportDataStore');
 
 // Dodaj import funkcji wyslijRaport
-const { wyslijRaport, formatujRaport } = require('./commands/raport');
-const googleSheets = require('./utils/googleSheets');
-const ChannelManager = require('./utils/channelManager');
+const { formatujRaport } = require('./commands/raport');
 
 // Dodaj import funkcji z edytujRaport.js
 const { 
@@ -59,11 +54,10 @@ const {
 } = require('./commands/edytujRaport');
 
 // Załaduj komendy
-const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
 for (const file of commandFiles) {
-    const command = require(`./commands/${file}`);
+    const command = require(path.join(commandsPath, file));
     client.commands.set(command.data.name, command);
-    console.log(`Załadowano komendę: ${command.data.name}`);
+    console.log('Załadowano komendę:', command.data.name);
 }
 
 // Obsługa eventu ready
@@ -87,27 +81,13 @@ client.on('interactionCreate', async interaction => {
             const command = client.commands.get(interaction.commandName);
             if (!command) return;
 
-            try {
-                await command.execute(interaction);
-            } catch (error) {
-                console.error('❌ Błąd podczas wykonywania komendy:', error);
-                if (!interaction.replied && !interaction.deferred) {
-                    await interaction.reply({ 
-                        content: '❌ Wystąpił błąd podczas wykonywania komendy.',
-                        ephemeral: true 
-                    });
-                }
-            }
+            await command.execute(interaction);
             return;
         }
 
-        // Obsługa interakcji z komponentami (tak jak w raport.js)
+        // Obsługa interakcji z komponentami
         if (interaction.isStringSelectMenu() || interaction.isButton()) {
-            const { customId } = interaction;
-            
             const userData = raportStore.getReport(interaction.user.id);
-            console.log('Dane użytkownika:', userData);
-
             if (!userData) {
                 await interaction.reply({
                     content: 'Sesja wygasła. Użyj komendy ponownie.',
@@ -116,29 +96,8 @@ client.on('interactionCreate', async interaction => {
                 return;
             }
 
-            let updateData = {};
-
-            // Obsługa wyboru miejsca pracy, auta, osób i kierowcy
-            if (customId === 'miejsce_pracy' || customId === 'auto' || 
-                customId === 'osoby_pracujace' || customId === 'kierowca') {
-                
-                // Aktualizuj odpowiednie pole
-                if (customId === 'miejsce_pracy') {
-                    updateData.miejscePracy = interaction.values[0];
-                } else if (customId === 'auto') {
-                    updateData.auto = interaction.values[0];
-                } else if (customId === 'osoby_pracujace') {
-                    updateData.osobyPracujace = interaction.values;
-                } else if (customId === 'kierowca') {
-                    updateData.kierowca = interaction.values[0];
-                }
-
-                // Aktualizuj dane w store
-                const updatedData = raportStore.updateReport(interaction.user.id, updateData);
-                
-                // Kontynuuj formularz
-                await wyslijRaport(interaction, updatedData);
-            }
+            // Przekazujemy obsługę do wyslijRaport z raport.js
+            await wyslijRaport(interaction, userData);
         }
     } catch (error) {
         console.error('Błąd podczas obsługi interakcji:', error);
