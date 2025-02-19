@@ -1,6 +1,6 @@
 // Komenda /raport do tworzenia nowych raportów
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, TextInputBuilder, TextInputStyle } = require('discord.js');
+const { ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { MIEJSCA_PRACY, POJAZDY, CZAS } = require('../config/config');
 const googleSheets = require('../utils/googleSheets');
 const ChannelManager = require('../utils/channelManager');
@@ -14,7 +14,10 @@ module.exports = {
 
     async execute(interaction) {
         try {
-            // Miejsce pracy
+            // Inicjalizacja raportu w store
+            raportStore.initReport(interaction.user.id, interaction.user.username);
+
+            // Utworzenie formularza z wyborem miejsca pracy
             const miejscaPracySelect = new StringSelectMenuBuilder()
                 .setCustomId('miejsce_pracy')
                 .setPlaceholder('Wybierz miejsce pracy')
@@ -25,7 +28,7 @@ module.exports = {
                     }))
                 );
 
-            // Pojazdy
+            // Utworzenie formularza z wyborem pojazdu
             const pojazdySelect = new StringSelectMenuBuilder()
                 .setCustomId('auto')
                 .setPlaceholder('Wybierz pojazd')
@@ -35,6 +38,9 @@ module.exports = {
                         value: pojazd
                     }))
                 );
+
+            // Pobierz członków serwera
+            const czlonkowie = await pobierzCzlonkowSerwera(interaction.guild);
 
             // Dodajmy funkcję pomocniczą do uzupełniania opcji do minimum 5
             function uzupelnijOpcjeDoMinimum(opcje, prefix = 'Opcja') {
@@ -49,24 +55,21 @@ module.exports = {
                 return wynik;
             }
 
-            // Pobierz członków serwera dla listy osób pracujących i kierowców
-            const members = await pobierzCzlonkowSerwera(interaction.guild);
-
-            // Osoby pracujące
+            // Modyfikacja menu wyboru osób pracujących
             const osobyPracujaceSelect = new StringSelectMenuBuilder()
                 .setCustomId('osoby_pracujace')
                 .setPlaceholder('Wybierz osoby pracujące')
                 .setMinValues(1)
                 .setMaxValues(5)
-                .addOptions(uzupelnijOpcjeDoMinimum(members, 'Pracownik'));
+                .addOptions(uzupelnijOpcjeDoMinimum(czlonkowie, 'Pracownik'));
 
-            // Kierowca
+            // Modyfikacja menu wyboru kierowcy
             const kierowcaSelect = new StringSelectMenuBuilder()
                 .setCustomId('kierowca')
                 .setPlaceholder('Wybierz kierowcę')
-                .addOptions(uzupelnijOpcjeDoMinimum(members, 'Kierowca'));
+                .addOptions(uzupelnijOpcjeDoMinimum(czlonkowie, 'Kierowca'));
 
-            // Przyciski diety
+            // Przyciski do wyboru diety
             const dietaButtons = new ActionRowBuilder()
                 .addComponents(
                     new ButtonBuilder()
@@ -79,32 +82,6 @@ module.exports = {
                         .setStyle(ButtonStyle.Danger)
                 );
 
-            // Czas
-            const dateSelect = new StringSelectMenuBuilder()
-                .setCustomId('data_raportu')
-                .setPlaceholder('Wybierz datę')
-                .addOptions(CZAS.getDaty());
-
-            const startHourSelect = new StringSelectMenuBuilder()
-                .setCustomId('godzina_rozpoczecia')
-                .setPlaceholder('Wybierz godzinę rozpoczęcia')
-                .addOptions(CZAS.getGodziny());
-
-            const startMinuteSelect = new StringSelectMenuBuilder()
-                .setCustomId('minuta_rozpoczecia')
-                .setPlaceholder('Wybierz minutę rozpoczęcia')
-                .addOptions(CZAS.MINUTY);
-
-            const endHourSelect = new StringSelectMenuBuilder()
-                .setCustomId('godzina_zakonczenia')
-                .setPlaceholder('Wybierz godzinę zakończenia')
-                .addOptions(CZAS.getGodziny());
-
-            const endMinuteSelect = new StringSelectMenuBuilder()
-                .setCustomId('minuta_zakonczenia')
-                .setPlaceholder('Wybierz minutę zakończenia')
-                .addOptions(CZAS.MINUTY);
-
             // Modyfikacja wysyłania odpowiedzi
             await interaction.reply({
                 content: 'Wypełnij formularz raportu:',
@@ -115,26 +92,13 @@ module.exports = {
                     new ActionRowBuilder().addComponents(kierowcaSelect),
                     dietaButtons
                 ],
-                flags: ['Ephemeral']
-            });
-
-            // Wysyłamy dodatkową wiadomość z wyborem czasu
-            await interaction.followUp({
-                content: 'Wybierz czas pracy:',
-                components: [
-                    new ActionRowBuilder().addComponents(dateSelect),
-                    new ActionRowBuilder().addComponents(startHourSelect),
-                    new ActionRowBuilder().addComponents(startMinuteSelect),
-                    new ActionRowBuilder().addComponents(endHourSelect),
-                    new ActionRowBuilder().addComponents(endMinuteSelect)
-                ],
-                flags: ['Ephemeral']
+                ephemeral: true
             });
         } catch (error) {
             console.error('Błąd podczas wysyłania formularza:', error);
             await interaction.reply({ 
                 content: 'Wystąpił błąd podczas tworzenia formularza.', 
-                flags: ['Ephemeral']
+                ephemeral: true
             });
         }
     },
@@ -219,7 +183,7 @@ ${header}
 👷‍♂️ Pracownik: ${raportData.pracownik}
 📍 Miejsce pracy: ${raportData.miejscePracy}
 ⏳ Czas pracy: ${raportData.czasRozpoczecia} - ${raportData.czasZakonczenia}
-�� Dieta / Delegacja: ${raportData.dieta ? 'Tak' : 'Nie'}
+💰 Dieta / Delegacja: ${raportData.dieta ? 'Tak' : 'Nie'}
 👥 Osoby pracujące: ${raportData.osobyPracujace.join(', ')}
 🚗 Auto: ${raportData.auto}
 🧑‍✈️ Kierowca: ${raportData.kierowca}
