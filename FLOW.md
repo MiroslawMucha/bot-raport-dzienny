@@ -1,5 +1,8 @@
 # Dokumentacja i Analiza Funkcji Aplikacji Raportów
 
+
+
+
 Niniejszy dokument zawiera szczegółową analizę kluczowych plików JavaScript w aplikacji raportów, omówienie poszczególnych funkcji, zależności między modułami oraz ogólny flow działania systemu. Poniżej znajdziesz omówienie każdego z plików:
 
 ---
