@@ -188,16 +188,22 @@ client.on('interactionCreate', async interaction => {
 
                 // Jeśli mamy wszystkie potrzebne dane, sformatuj czas
                 if (timeData.selectedDate) {
+                    // Najpierw logujemy wybraną datę
+                    console.log(`📝 [RAPORT] ${userData.username} aktualizuje: data: ${timeData.selectedDate}`);
+                    
                     if (timeData.startHour && timeData.startMinute) {
                         timeData.czasRozpoczecia = `${timeData.selectedDate} ${timeData.startHour}:${timeData.startMinute}`;
+                        console.log(`📝 [RAPORT] ${userData.username} aktualizuje: czas rozpoczęcia: ${timeData.startHour}:${timeData.startMinute}`);
                     }
                     if (timeData.endHour && timeData.endMinute) {
                         timeData.czasZakonczenia = `${timeData.selectedDate} ${timeData.endHour}:${timeData.endMinute}`;
+                        console.log(`📝 [RAPORT] ${userData.username} aktualizuje: czas zakończenia: ${timeData.endHour}:${timeData.endMinute}`);
                     }
                 }
 
-                // Aktualizuj store i wiadomość
-                const updatedData = raportStore.updateReport(interaction.user.id, timeData);
+                // Aktualizuj store bez logowania wszystkich danych
+                const updatedData = { ...userData, ...timeData };
+                raportStore.set(interaction.user.id, updatedData);
 
                 // Sprawdź czy formularz jest kompletny po aktualizacji czasu
                 if (updatedData.miejscePracy && 

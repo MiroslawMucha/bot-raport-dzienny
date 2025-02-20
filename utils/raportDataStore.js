@@ -65,9 +65,19 @@ const store = {
     updateReport: (userId, data) => {
         const currentReport = raportDataStore.get(userId);
         if (currentReport) {
-            // Wyświetlamy tylko istotne zmiany (pomijamy puste wartości)
+            // Filtrujemy tylko istotne pola do logowania
             const istotneZmiany = Object.entries(data)
-                .filter(([_, value]) => value !== '' && value !== false && (!Array.isArray(value) || value.length > 0))
+                .filter(([key, value]) => {
+                    // Ignorujemy pola techniczne i puste wartości
+                    const technicznePola = [
+                        'userId', 'username', 'displayName', 'globalName', 'fullName', 'startTime',
+                        'selectedDate', 'startHour', 'startMinute', 'endHour', 'endMinute'
+                    ];
+                    return !technicznePola.includes(key) && 
+                           value !== '' && 
+                           value !== false && 
+                           (!Array.isArray(value) || value.length > 0);
+                })
                 .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`);
             
             if (istotneZmiany.length > 0) {
