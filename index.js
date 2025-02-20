@@ -69,21 +69,8 @@ client.on('interactionCreate', async interaction => {
 
             // Obsługa przycisku reset
             if (customId === 'reset_form') {
-                // Dodajemy logi debugowania
-                console.log('Resetowanie formularza dla użytkownika:', interaction.user.id);
-                console.log('Stan przed resetem:', {
-                    hasLock: locks.has(interaction.user.id),
-                    hasReport: raportStore.hasActiveReport(interaction.user.id)
-                });
-
                 // Wymuszamy reset
                 raportStore.resetReport(interaction.user.id);
-
-                // Sprawdzamy stan po resecie
-                console.log('Stan po resecie:', {
-                    hasLock: locks.has(interaction.user.id),
-                    hasReport: raportStore.hasActiveReport(interaction.user.id)
-                });
 
                 await interaction.update({
                     content: 'Formularz został zresetowany. Możesz teraz użyć komendy /raport aby rozpocząć od nowa.',
@@ -94,7 +81,6 @@ client.on('interactionCreate', async interaction => {
             }
 
             const userData = raportStore.getReport(interaction.user.id);
-            console.log('Dane użytkownika:', userData);
 
             if (!userData) {
                 await interaction.reply({
