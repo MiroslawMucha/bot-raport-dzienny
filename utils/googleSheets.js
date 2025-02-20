@@ -23,6 +23,8 @@ function getTimestamp() {
 
 class GoogleSheetsService {
     constructor() {
+        this.debugSearch = process.env.DEBUG_SEARCH === 'true';
+        this.debugLogs = process.env.DEBUG_LOGS === 'true';
         // Inicjalizacja klienta Google Sheets
         this.auth = new google.auth.GoogleAuth({
             keyFile: path.join(__dirname, '../credentials.json'),
@@ -231,10 +233,12 @@ class GoogleSheetsService {
         if (!this.sheetsApi) await this.init();
         
         try {
-            console.log('🔍 Szukam raportu dla:', {
-                username,
-                dataRaportu,
-            });
+            if (this.debugSearch) {
+                console.log('🔍 [GOOGLE SHEETS] Szukam raportu:', {
+                    username,
+                    dataRaportu,
+                });
+            }
 
             const response = await this.sheetsApi.spreadsheets.values.get({
                 spreadsheetId: process.env.GOOGLE_SHEET_ID,
@@ -243,45 +247,43 @@ class GoogleSheetsService {
 
             const rows = response.data.values || [];
             
-            // Dodajemy logi dla debugowania
-            rows.forEach((row, index) => {
-                if (!row[0]) return; // Pomijamy puste wiersze
-                
-                const raportId = row[0]; // np. "19.02.2025--12:25:50-mucha_electric"
-                const pracownik = row[1]; // np. "Mucha Electric"
-                const dataZRaportu = row[3].split(' ')[0]; // np. "03.02.2025"
-                const usernameZId = raportId.split('-').pop(); // Wyciągamy username z ID raportu
-                
-                console.log(`Wiersz ${index}:`, {
-                    raportId,
-                    pracownik,
-                    dataZRaportu,
-                    usernameZId
+            if (this.debugSearch) {
+                rows.forEach((row, index) => {
+                    if (!row[0]) return;
+                    const raportId = row[0];
+                    const pracownik = row[1];
+                    const dataZRaportu = row[3].split(' ')[0];
+                    const usernameZId = raportId.split('-').pop();
+                    console.debug(`🔍 [GOOGLE SHEETS] Wiersz ${index}:`, {
+                        raportId, pracownik, dataZRaportu, usernameZId
+                    });
                 });
-            });
+            }
 
             const znalezionyRaport = rows.find((row) => {
                 if (!row[0] || !row[3]) return false;
                 
-                const usernameZId = row[0].split('-').pop(); // Wyciągamy username z ID raportu
-                const dataZRaportu = row[3].split(' ')[0]; // Data z raportu (np. "03.02.2025")
+                const usernameZId = row[0].split('-').pop();
+                const dataZRaportu = row[3].split(' ')[0];
                 
-                // Porównujemy username z ID raportu i datę z raportu
                 const czyPasuje = usernameZId === username.toLowerCase().replace(/ /g, '_') && 
-                                 dataZRaportu === dataRaportu;
+                                dataZRaportu === dataRaportu;
                 
-                console.log('Porównanie:', {
-                    dataZRaportu,
-                    szukanaData: dataRaportu,
-                    usernameZId,
-                    szukanyUsername: username.toLowerCase().replace(/ /g, '_'),
-                    czyPasuje
-                });
+                if (this.debugSearch && czyPasuje) {
+                    console.debug('✓ [GOOGLE SHEETS] Znaleziono dopasowanie:', {
+                        dataZRaportu,
+                        szukanaData: dataRaportu,
+                        usernameZId,
+                        szukanyUsername: username.toLowerCase().replace(/ /g, '_')
+                    });
+                }
                 
                 return czyPasuje;
             });
 
-            console.log('Wynik wyszukiwania:', znalezionyRaport ? 'Znaleziono' : 'Nie znaleziono');
+            if (this.debugSearch) {
+                console.debug(`${znalezionyRaport ? '✅' : '❌'} [GOOGLE SHEETS] Wynik wyszukiwania: ${znalezionyRaport ? 'Znaleziono' : 'Nie znaleziono'}`);
+            }
             
             return znalezionyRaport;
         } catch (error) {
