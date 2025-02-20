@@ -14,11 +14,6 @@ module.exports = {
 
     async execute(interaction) {
         try {
-            console.log('Rozpoczynam wykonanie komendy raport:', {
-                userId: interaction.user.id,
-                username: interaction.user.username
-            });
-
             // Inicjalizacja nowego formularza (zawiera reset)
             try {
                 raportStore.initReport(interaction.user.id, {
@@ -35,7 +30,7 @@ module.exports = {
                     });
                     return;
                 }
-                throw error; // Przekazujemy dalej inne błędy
+                throw error;
             }
 
             // Utworzenie formularza z wyborem miejsca pracy

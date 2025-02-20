@@ -159,10 +159,6 @@ const store = {
         const hadReport = raportDataStore.has(userId);
         raportDataStore.delete(userId);
         locks.delete(userId);
-
-        if (hadReport) {
-            console.log(`Reset formularza dla użytkownika ${userId}`);
-        }
     }
 };
 

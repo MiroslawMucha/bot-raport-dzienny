@@ -60,12 +60,8 @@ client.on('interactionCreate', async interaction => {
     try {
         if (interaction.isChatInputCommand()) {
             console.log(`👤 [BOT] ${interaction.user.username} użył /${interaction.commandName}`);
-        }
-
-        if (interaction.isChatInputCommand()) {
             const command = client.commands.get(interaction.commandName);
             if (!command) return;
-
             await command.execute(interaction);
         } 
         else if (interaction.type === InteractionType.MessageComponent) {
