@@ -337,7 +337,7 @@ class GoogleSheetsService {
                 }
             });
 
-            console.log(`✅ [GOOGLE SHEETS] Raport przeniesiony do historii: Pracownik ${raport[1]}, data ${raport[3]}`);
+            console.log(`📦 [SHEETS] Przeniesiono do archiwum: ${raport[1]} (${raport[3].split(' ')[0]})`);
             return true;
         } catch (error) {
             console.error('❌ Błąd podczas przenoszenia do historii:', error);

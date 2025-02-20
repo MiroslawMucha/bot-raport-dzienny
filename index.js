@@ -293,7 +293,9 @@ client.on('interactionCreate', async interaction => {
                         updatedData.selectedDate
                     );
 
-                    console.debug(`📥 [INDEX] Weryfikacja raportu: użytkownik ${updatedData.username}, data ${updatedData.selectedDate}, znaleziono: ${!!istniejacyRaport}`);
+                    if (istniejacyRaport) {
+                        console.log(`📝 [RAPORT] Znaleziono istniejący raport dla ${updatedData.username} z dnia ${updatedData.selectedDate}`);
+                    }
 
                     const buttons = [
                         new ButtonBuilder()
@@ -424,6 +426,19 @@ Czy chcesz wysłać raport?`,
                             await wyslijRaport(interaction, currentData, true, istniejacyRaport);
                             raportStore.deleteReport(interaction.user.id);
                             
+                            // Podsumowanie edytowanego raportu
+                            console.log(`
+🔄 [RAPORT] Edytowano raport:
+├─ Autor:     ${currentData.username}
+├─ Data:      ${currentData.selectedDate}
+├─ Godziny:   ${currentData.czasRozpoczecia.split(' ')[1]} - ${currentData.czasZakonczenia.split(' ')[1]}
+├─ Miejsce:   ${currentData.miejscePracy}
+├─ Auto:      ${currentData.auto}
+├─ Kierowca:  ${currentData.kierowca}
+├─ Osoby:     ${currentData.osobyPracujace.join(', ')}
+└─ Dieta:     ${currentData.dieta ? 'Tak' : 'Nie'}
+`);
+
                             await interaction.followUp({
                                 content: 'Raport został pomyślnie zaktualizowany!',
                                 ephemeral: true

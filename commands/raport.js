@@ -196,28 +196,30 @@ async function wyslijRaport(interaction, raportData, isEdit = false, originalRap
         const zapisano = await googleSheets.dodajRaport(dataToSend, isEdit);
 
         if (zapisano) {
-            console.log(`✅ [RAPORT] ${dataToSend.username} wysłał raport${isEdit ? ' (edycja)' : ''}`);
-            
             const kanalRaporty = interaction.guild.channels.cache.get(process.env.KANAL_RAPORTY_ID);
             await kanalRaporty.send(raportMessage);
+            console.log(`📨 [DISCORD] Wysłano raport na kanał #${kanalRaporty.name}`);
             
             const kanalPrywatny = await channelManager.getOrCreateUserChannel(interaction.guild, interaction.user);
             await kanalPrywatny.send(raportMessage);
+            console.log(`📨 [DISCORD] Wysłano raport na kanał prywatny #${kanalPrywatny.name}`);
 
             await interaction.followUp({
                 content: 'Raport został pomyślnie zapisany i wysłany na odpowiednie kanały!',
                 ephemeral: true
             });
+            console.log(`✅ [DISCORD] Wysłano potwierdzenie do użytkownika ${interaction.user.username}`);
         } else {
             await interaction.followUp({
                 content: 'Wystąpił błąd podczas zapisywania raportu!',
                 ephemeral: true
             });
+            console.log(`❌ [DISCORD] Błąd zapisu - wysłano informację do ${interaction.user.username}`);
         }
     } catch (error) {
         // Zawsze zwalniamy blokadę w przypadku błędu
         raportStore.deleteReport(interaction.user.id);
-        console.error('Błąd podczas przetwarzania raportu:', error);
+        console.error(`❌ [DISCORD] Błąd wysyłania: ${error.message}`);
         await interaction.followUp({
             content: 'Wystąpił nieoczekiwany błąd. Spróbuj ponownie później.',
             ephemeral: true
