@@ -5,6 +5,7 @@ const { MIEJSCA_PRACY, POJAZDY, CZAS } = require('../config/config');
 const googleSheets = require('../utils/googleSheets');
 const channelManager = require('../utils/channelManager');
 const raportStore = require('../utils/raportDataStore');
+const logger = require('../utils/logger');
 
 module.exports = {
     // Definicja komendy
@@ -153,6 +154,8 @@ module.exports = {
                 ],
                 ephemeral: true
             });
+
+            logger.logRaportAction('start', { username: interaction.user.username });
         } catch (error) {
             console.error('Błąd podczas wykonywania komendy raport:', error);
             raportStore.resetReport(interaction.user.id);

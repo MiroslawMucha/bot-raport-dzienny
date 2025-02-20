@@ -4,39 +4,13 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 const { MAX_CONCURRENT_FORMS } = require('./utils/raportDataStore');
+const logger = require('./utils/logger');
 
 const VERSION = '1.0.0';
 
-// Funkcja do rysowania bannera startowego
-function drawStartupBanner() {
-    console.log(`
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📊 Bot Raport Dzienny v${VERSION}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-`);
-}
-
-// Funkcja do wyświetlania statusu konfiguracji
-function logConfigStatus() {
-    const configStatus = {
-        token: !!process.env.TOKEN ? '✅' : '❌',
-        categoryId: !!process.env.PRIVATE_CATEGORY_ID ? '✅' : '❌',
-        channelId: !!process.env.KANAL_RAPORTY_ID ? '✅' : '❌',
-        googleCreds: !!process.env.GOOGLE_SHEET_ID ? '✅' : '❌'
-    };
-
-    console.log(`
-🔧 Konfiguracja:
-├─ Token Discord     ${configStatus.token}
-├─ ID Kategorii      ${configStatus.categoryId} ${process.env.PRIVATE_CATEGORY_ID || ''}
-├─ ID Kanału         ${configStatus.channelId} ${process.env.KANAL_RAPORTY_ID || ''}
-└─ Google Sheets     ${configStatus.googleCreds}
-`);
-}
-
 // Wywołanie bannera startowego na początku
-drawStartupBanner();
-logConfigStatus();
+logger.drawStartupBanner(VERSION);
+logger.logConfig(process.env);
 
 // Inicjalizacja klienta Discord z odpowiednimi uprawnieniami
 const client = new Client({

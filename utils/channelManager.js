@@ -1,5 +1,6 @@
 // Moduł do zarządzania kanałami Discord
 const { ChannelType, PermissionFlagsBits } = require('discord.js');
+const logger = require('./logger');
 
 class ChannelManager {
     constructor() {
@@ -10,12 +11,11 @@ class ChannelManager {
     // Funkcja tworząca lub pobierająca prywatny kanał użytkownika
     async getOrCreateUserChannel(guild, user) {
         try {
-            console.log(`
-🔍 [CHANNEL] Sprawdzanie kanału:
-├─ Użytkownik: ${user.username}
-├─ Kategoria:  ${process.env.PRIVATE_CATEGORY_ID}
-└─ Nazwa:      raport-${user.username.toLowerCase()}
-`);
+            logger.logChannelAction('check', {
+                username: user.username,
+                categoryId: process.env.PRIVATE_CATEGORY_ID,
+                channelName: `raport-${user.username.toLowerCase()}`
+            });
 
             // Sprawdzamy rate limit
             const now = Date.now();
