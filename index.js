@@ -201,9 +201,8 @@ client.on('interactionCreate', async interaction => {
                     }
                 }
 
-                // Aktualizuj store bez logowania wszystkich danych
-                const updatedData = { ...userData, ...timeData };
-                raportStore.set(interaction.user.id, updatedData);
+                // Aktualizuj store używając istniejącej metody updateReport
+                const updatedData = raportStore.updateReport(interaction.user.id, timeData);
 
                 // Sprawdź czy formularz jest kompletny po aktualizacji czasu
                 if (updatedData.miejscePracy && 
