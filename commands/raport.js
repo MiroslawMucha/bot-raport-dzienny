@@ -194,25 +194,18 @@ async function wyslijRaport(interaction, raportData, isEdit = false, originalRap
     try {
         const dataToSend = {
             ...raportData,
-            username: raportData.username.toLowerCase().replace(/ /g, '_'),
-            pracownik: raportData.globalName || raportData.displayName || raportData.username,
-            miejscePracy: raportData.miejscePracy
+            username: raportData.username.toLowerCase().replace(/ /g, '_')
         };
 
-        // Formatowanie wiadomości raportu z oryginalnym raportem
         const raportMessage = formatujRaport(dataToSend, isEdit, originalRaport);
-
-        // Zapisanie do Google Sheets z flagą edycji
         const zapisano = await googleSheets.dodajRaport(dataToSend, isEdit);
 
         if (zapisano) {
-            console.log(`✅ [RAPORT] Raport wysłany dla użytkownika ${dataToSend.username}`);
-
-            // Wysyłanie raportu do kanału głównego raportów
+            console.log(`✅ [RAPORT] ${dataToSend.username} wysłał raport${isEdit ? ' (edycja)' : ''}`);
+            
             const kanalRaporty = interaction.guild.channels.cache.get(process.env.KANAL_RAPORTY_ID);
             await kanalRaporty.send(raportMessage);
-
-            // Wysyłanie raportu do prywatnego kanału użytkownika
+            
             const kanalPrywatny = await channelManager.getOrCreateUserChannel(interaction.guild, interaction.user);
             await kanalPrywatny.send(raportMessage);
 

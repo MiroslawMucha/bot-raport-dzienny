@@ -57,14 +57,12 @@ setInterval(() => {
 
 // Obsługa interakcji (komendy slash)
 client.on('interactionCreate', async interaction => {
-    console.log('Otrzymano interakcję:', {
-        type: interaction.type,
-        commandName: interaction.commandName,
-        user: interaction.user.username
-    });
-
     try {
-        if (interaction.type === InteractionType.ApplicationCommand) {
+        if (interaction.isChatInputCommand()) {
+            console.log(`👤 [BOT] ${interaction.user.username} użył /${interaction.commandName}`);
+        }
+
+        if (interaction.isChatInputCommand()) {
             const command = client.commands.get(interaction.commandName);
             if (!command) return;
 
@@ -369,22 +367,11 @@ Czy chcesz wysłać raport?`,
             }
         }
     } catch (error) {
-        console.error('Błąd podczas obsługi interakcji:', error);
-        // Zawsze zwalniamy blokadę w przypadku błędu
-        if (interaction.user) {
-            raportStore.resetReport(interaction.user.id);
-        }
-        // Informujemy użytkownika o błędzie
-        try {
-            const errorMessage = 'Wystąpił błąd podczas przetwarzania formularza. Formularz został zresetowany.';
-            if (interaction.replied || interaction.deferred) {
-                await interaction.followUp({ content: errorMessage, ephemeral: true });
-            } else {
-                await interaction.reply({ content: errorMessage, ephemeral: true });
-            }
-        } catch (e) {
-            console.error('Błąd podczas wysyłania informacji o błędzie:', e);
-        }
+        console.error(`❌ [BOT] Błąd: ${error.message}`);
+        await interaction.reply({
+            content: 'Wystąpił błąd podczas wykonywania tej komendy!',
+            ephemeral: true
+        });
     }
 });
 

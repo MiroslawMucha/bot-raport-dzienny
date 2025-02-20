@@ -22,21 +22,15 @@ let aggregatedCleanup = {
 const store = {
     // Inicjalizacja nowego raportu
     initReport: (userId, userData) => {
-        // Sprawdzamy aktualną liczbę aktywnych formularzy
         if (raportDataStore.size >= MAX_CONCURRENT_FORMS) {
             console.log('⚠️ [RAPORT] Przekroczono limit jednoczesnych formularzy:', {
                 aktualnaLiczba: raportDataStore.size,
-                maksymalnaLiczba: MAX_CONCURRENT_FORMS,
-                aktywniUzytkownicy: Array.from(raportDataStore.values()).map(r => r.username)
+                maksymalnaLiczba: MAX_CONCURRENT_FORMS
             });
             throw new Error(`Zbyt wiele aktywnych formularzy (${raportDataStore.size}/${MAX_CONCURRENT_FORMS}). Spróbuj ponownie za chwilę.`);
         }
 
-        console.log('🔄 [RAPORT] Inicjalizacja nowego raportu:', {
-            krok: 'rozpoczęcie',
-            userId,
-            userData
-        });
+        console.log(`🔄 [RAPORT] Użytkownik ${userData.username} rozpoczął tworzenie raportu`);
 
         store.resetReport(userId);
 
@@ -59,14 +53,6 @@ const store = {
         raportDataStore.set(userId, newReport);
         locks.set(userId, true);
 
-        console.log('✅ [RAPORT] Raport zainicjalizowany:', {
-            krok: 'zakończenie',
-            userId,
-            username: userData.username,
-            czasUtworzeniaRaportu: new Date(newReport.startTime).toLocaleString(),
-            czasWygasnieciaRaportu: new Date(newReport.startTime + FORM_TIMEOUT).toLocaleString()
-        });
-
         return newReport;
     },
 
@@ -77,30 +63,21 @@ const store = {
 
     // Aktualizacja danych raportu
     updateReport: (userId, data) => {
-        console.log('📝 [RAPORT] Aktualizacja raportu:', {
-            krok: 'rozpoczęcie',
-            userId,
-            aktualizowanePola: Object.keys(data),
-            noweWartosci: data
-        });
-
         const currentReport = raportDataStore.get(userId);
         if (currentReport) {
-            const updatedReport = { ...currentReport, ...data };
-            raportDataStore.set(userId, updatedReport);
+            // Wyświetlamy tylko istotne zmiany (pomijamy puste wartości)
+            const istotneZmiany = Object.entries(data)
+                .filter(([_, value]) => value !== '' && value !== false && (!Array.isArray(value) || value.length > 0))
+                .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`);
             
-            console.log('✅ [RAPORT] Raport zaktualizowany:', {
-                krok: 'zakończenie',
-                userId,
-                username: currentReport.username,
-                poprzednieWartosci: Object.keys(data).reduce((acc, key) => {
-                    acc[key] = currentReport[key];
-                    return acc;
-                }, {}),
-                noweWartosci: data,
-                pozostalyCzas: Math.round((FORM_TIMEOUT - (Date.now() - currentReport.startTime)) / 1000) + 's'
-            });
+            if (istotneZmiany.length > 0) {
+                console.log(`📝 [RAPORT] ${currentReport.username} aktualizuje: ${istotneZmiany.join(', ')}`);
+            }
         }
+
+        const updatedReport = { ...currentReport, ...data };
+        raportDataStore.set(userId, updatedReport);
+        
         return raportDataStore.get(userId);
     },
 
@@ -164,14 +141,6 @@ const store = {
         const report = raportDataStore.get(userId);
         const lock = locks.get(userId);
         
-        console.log('🔍 [RAPORT] Sprawdzanie aktywności:', {
-            userId,
-            maRaport: !!report,
-            maBlokade: !!lock,
-            czasAktywnosci: report ? Math.round((Date.now() - report.startTime) / 1000) + 's' : 'brak',
-            pozostalyCzas: report ? Math.round((FORM_TIMEOUT - (Date.now() - report.startTime)) / 1000) + 's' : 'brak'
-        });
-
         if (!report || !lock) {
             return false;
         }

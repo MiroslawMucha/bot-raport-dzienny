@@ -10,8 +10,7 @@ class ChannelManager {
     // Funkcja tworząca lub pobierająca prywatny kanał użytkownika
     async getOrCreateUserChannel(guild, user) {
         try {
-            // Dodajmy logi na początku
-            console.debug(`🔍 [CHANNEL] Inicjacja: Tworzenie/Pobieranie kanału dla użytkownika ${user.username} | Kategoria: ${process.env.PRIVATE_CATEGORY_ID}`);
+            console.debug(`🔍 [CHANNEL] Sprawdzanie kanału dla ${user.username}`);
 
             // Sprawdzamy rate limit
             const now = Date.now();
@@ -21,12 +20,9 @@ class ChannelManager {
                 );
             }
 
-            // Pobieramy kategorię RAPORTY
             const category = guild.channels.cache.get(process.env.PRIVATE_CATEGORY_ID);
-            console.debug(`🔍 [CHANNEL] Odczyt kategorii: ${process.env.PRIVATE_CATEGORY_ID} | Znaleziono: ${!!category}`);
-
             if (!category) {
-                throw new Error('Nie znaleziono kategorii RAPORTY. Sprawdź PRIVATE_CATEGORY_ID w .env');
+                console.warn(`⚠️ [CHANNEL] Nie znaleziono kategorii ${process.env.PRIVATE_CATEGORY_ID}`);
             }
 
             // Próba znalezienia istniejącego kanału w kategorii RAPORTY
