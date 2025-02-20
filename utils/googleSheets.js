@@ -337,7 +337,13 @@ class GoogleSheetsService {
                 }
             });
 
-            console.log(`📦 [SHEETS] Przeniesiono do archiwum: ${raport[1]} (${raport[3].split(' ')[0]})`);
+            console.log(`
+📦 [SHEETS] Archiwizacja raportu:
+├─ Autor:     ${raport[1]}
+├─ Data:      ${raport[3].split(' ')[0]}
+├─ Godziny:   ${raport[4]} - ${raport[5]}
+└─ Status:    Przeniesiono do historii
+`);
             return true;
         } catch (error) {
             console.error('❌ Błąd podczas przenoszenia do historii:', error);

@@ -10,7 +10,12 @@ class ChannelManager {
     // Funkcja tworząca lub pobierająca prywatny kanał użytkownika
     async getOrCreateUserChannel(guild, user) {
         try {
-            console.debug(`🔍 [CHANNEL] Sprawdzanie kanału dla ${user.username}`);
+            console.log(`
+🔍 [CHANNEL] Sprawdzanie kanału:
+├─ Użytkownik: ${user.username}
+├─ Kategoria:  ${process.env.PRIVATE_CATEGORY_ID}
+└─ Nazwa:      raport-${user.username.toLowerCase()}
+`);
 
             // Sprawdzamy rate limit
             const now = Date.now();

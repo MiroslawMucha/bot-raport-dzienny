@@ -187,6 +187,7 @@ async function pobierzCzlonkowSerwera(guild) {
 // Funkcja wysyłająca raport
 async function wyslijRaport(interaction, raportData, isEdit = false, originalRaport = null) {
     try {
+        const startTime = Date.now();
         const dataToSend = {
             ...raportData,
             username: raportData.username.toLowerCase().replace(/ /g, '_')
@@ -216,6 +217,14 @@ async function wyslijRaport(interaction, raportData, isEdit = false, originalRap
             });
             console.log(`❌ [DISCORD] Błąd zapisu - wysłano informację do ${interaction.user.username}`);
         }
+
+        const endTime = Date.now();
+        console.log(`
+⚡ [PERFORMANCE] Podsumowanie operacji:
+├─ Typ:        ${isEdit ? 'Edycja' : 'Nowy'} raport
+├─ Użytkownik: ${interaction.user.username}
+└─ Czas:       ${endTime - startTime}ms
+`);
     } catch (error) {
         // Zawsze zwalniamy blokadę w przypadku błędu
         raportStore.deleteReport(interaction.user.id);

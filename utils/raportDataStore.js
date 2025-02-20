@@ -30,6 +30,12 @@ const store = {
             throw new Error(`Zbyt wiele aktywnych formularzy (${raportDataStore.size}/${MAX_CONCURRENT_FORMS}). Spróbuj ponownie za chwilę.`);
         }
 
+        console.log(`
+📊 [RAPORT] Stan formularzy:
+├─ Aktywne:    ${raportDataStore.size}/${MAX_CONCURRENT_FORMS}
+└─ Użytkownicy: ${Array.from(raportDataStore.keys()).join(', ')}
+`);
+
         console.log(`🔄 [RAPORT] Użytkownik ${userData.username} rozpoczął tworzenie raportu`);
 
         store.resetReport(userId);
