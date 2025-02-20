@@ -206,39 +206,20 @@ async function wyslijRaport(interaction, raportData, isEdit = false, originalRap
         const zapisano = await googleSheets.dodajRaport(dataToSend, isEdit);
 
         if (zapisano) {
-            try {
-                // Wysłanie na główny kanał raportów
-                const kanalRaporty = interaction.guild.channels.cache.get(process.env.KANAL_RAPORTY_ID);
-                await kanalRaporty.send(raportMessage);
+            console.log(`✅ [RAPORT] Raport wysłany dla użytkownika ${dataToSend.username}`);
 
-                // Pobranie lub utworzenie prywatnego kanału użytkownika
-                const kanalPrywatny = await channelManager.getOrCreateUserChannel(
-                    interaction.guild,
-                    interaction.user
-                );
+            // Wysyłanie raportu do kanału głównego raportów
+            const kanalRaporty = interaction.guild.channels.cache.get(process.env.KANAL_RAPORTY_ID);
+            await kanalRaporty.send(raportMessage);
 
-                // Wysłanie na prywatny kanał użytkownika
-                await kanalPrywatny.send(raportMessage);
+            // Wysyłanie raportu do prywatnego kanału użytkownika
+            const kanalPrywatny = await channelManager.getOrCreateUserChannel(interaction.guild, interaction.user);
+            await kanalPrywatny.send(raportMessage);
 
-                await interaction.followUp({
-                    content: 'Raport został pomyślnie zapisany i wysłany na odpowiednie kanały!',
-                    ephemeral: true
-                });
-            } catch (channelError) {
-                console.error('Błąd podczas wysyłania raportu:', channelError);
-                
-                if (channelError.code === 50001) {
-                    await interaction.followUp({
-                        content: 'Bot nie ma wymaganych uprawnień. Upewnij się, że bot ma uprawnienia do:\n- Zarządzania kanałami\n- Wysyłania wiadomości\n- Czytania historii wiadomości',
-                        ephemeral: true
-                    });
-                } else {
-                    await interaction.followUp({
-                        content: 'Wystąpił błąd podczas wysyłania raportu. Raport został zapisany w Google Sheets.',
-                        ephemeral: true
-                    });
-                }
-            }
+            await interaction.followUp({
+                content: 'Raport został pomyślnie zapisany i wysłany na odpowiednie kanały!',
+                ephemeral: true
+            });
         } else {
             await interaction.followUp({
                 content: 'Wystąpił błąd podczas zapisywania raportu!',

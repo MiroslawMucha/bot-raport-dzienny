@@ -1,6 +1,10 @@
 # Dokumentacja i Analiza Funkcji Aplikacji Raportów
 
-// test git push
+// test git push 
+
+git add . && git commit -m "Aktualizacja kodu" && git push origin X-Bot-Optymalizacja
+
+cd /var/www/bot-raport-dzienny && git pull origin X-Bot-Optymalizacja && pm2 restart raport-bot
 
 
 Niniejszy dokument zawiera szczegółową analizę kluczowych plików JavaScript w aplikacji raportów, omówienie poszczególnych funkcji, zależności między modułami oraz ogólny flow działania systemu. Poniżej znajdziesz omówienie każdego z plików:

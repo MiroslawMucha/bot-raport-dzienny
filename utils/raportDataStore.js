@@ -10,6 +10,14 @@ const FORM_TIMEOUT = 5 * 60 * 1000;
 // Interwał czyszczenia (10 minut)
 const CLEANUP_INTERVAL = 10 * 60 * 1000;
 
+// Dodajemy stałe na początku pliku, poza obiektem store
+const SIX_HOURS = 6 * 60 * 60 * 1000;
+let aggregatedCleanup = {
+    count: 0,
+    details: [],
+    lastTimestamp: Date.now()
+};
+
 // Funkcje pomocnicze do zarządzania danymi
 const store = {
     // Inicjalizacja nowego raportu
@@ -104,11 +112,8 @@ const store = {
 
     // Dodajemy timeout dla nieukończonych formularzy
     cleanupStaleReports: () => {
-        console.log('🧹 [CLEANUP] Rozpoczęcie czyszczenia:', {
-            krok: 'rozpoczęcie',
-            aktywneFormularze: raportDataStore.size,
-            aktywneBlokady: locks.size
-        });
+        // Wypisujemy skróconą informację (np. tylko liczba formularzy przed czyszczeniem)
+        console.debug(`🧹 [CLEANUP] Uruchomienie czyszczenia - formularze: ${raportDataStore.size}, blokady: ${locks.size}`);
 
         const now = Date.now();
         let cleaned = 0;
@@ -128,13 +133,29 @@ const store = {
             }
         }
         
-        if (cleaned > 0) {
-            console.log('🚮 [CLEANUP] Zakończono czyszczenie:', {
-                krok: 'zakończenie',
-                wyczyszczoneFormularze: cleaned,
-                szczegoly: details,
-                pozostaleFormularze: raportDataStore.size
-            });
+        // Agregujemy wyniki cleanupu
+        aggregatedCleanup.count += cleaned;
+        aggregatedCleanup.details = aggregatedCleanup.details.concat(details);
+        
+        // Wypisujemy krótką informację o tym wywołaniu (na poziomie debug)
+        console.debug(`🚮 [CLEANUP] Przebieg: wyczyszczono ${cleaned} formularzy.`);
+
+        // Sprawdzamy, czy minęło 6 godzin od ostatniego podsumowania
+        if (now - aggregatedCleanup.lastTimestamp >= SIX_HOURS) {
+            console.log(`
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🚮 [CLEANUP] Podsumowanie 6-godzinne:
+  - Łączna liczba wyczyszczonych formularzy: ${aggregatedCleanup.count}
+  - Szczegóły: ${JSON.stringify(aggregatedCleanup.details, null, 2)}
+  - Pozostałe formularze: ${raportDataStore.size}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            `);
+            // Resetujemy agregator
+            aggregatedCleanup = {
+                count: 0,
+                details: [],
+                lastTimestamp: now
+            };
         }
     },
 

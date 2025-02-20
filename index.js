@@ -234,12 +234,7 @@ client.on('interactionCreate', async interaction => {
                         updatedData.selectedDate
                     );
 
-                    console.log('Sprawdzanie istniejącego raportu:', {
-                        username: updatedData.username,
-                        usernameFormatted: updatedData.username.toLowerCase().replace(/ /g, '_'),
-                        selectedDate: updatedData.selectedDate,
-                        znaleziono: !!istniejacyRaport
-                    });
+                    console.debug(`📥 [INDEX] Weryfikacja raportu: użytkownik ${updatedData.username}, data ${updatedData.selectedDate}, znaleziono: ${!!istniejacyRaport}`);
 
                     const buttons = [
                         new ButtonBuilder()
@@ -356,7 +351,7 @@ Czy chcesz wysłać raport?`,
                             });
                         }
                     } catch (error) {
-                        console.error('Błąd podczas aktualizacji raportu:', error);
+                        console.error(`❌ [INDEX] Błąd aktualizacji raportu: ${error.message}`);
                         await interaction.followUp({
                             content: 'Wystąpił błąd podczas aktualizacji raportu.',
                             ephemeral: true

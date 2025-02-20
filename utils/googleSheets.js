@@ -97,7 +97,7 @@ class GoogleSheetsService {
     // Dodawanie nowego raportu do arkusza
     async dodajRaport(raportData, isEdit = false) {
         if (this.writeLock) {
-            console.log('⏳ Czekam na zwolnienie blokady zapisu...');
+            console.debug('⏳ [GOOGLE SHEETS] Czekam na zwolnienie blokady zapisu...');
             await new Promise(resolve => setTimeout(resolve, 1000));
             return this.dodajRaport(raportData, isEdit);
         }
@@ -132,7 +132,7 @@ class GoogleSheetsService {
                 resource: { values }
             });
 
-            console.log(`✅ Dodano raport ID: ${raportId}`);
+            console.log(`✅ [GOOGLE SHEETS] Dodano raport: ID ${raportId}`);
             return true;
         } catch (error) {
             console.error('❌ Błąd podczas dodawania raportu:', error);
@@ -342,7 +342,7 @@ class GoogleSheetsService {
                 }
             });
 
-            console.log(`✅ Przeniesiono raport do historii: ${raport[1]} z dnia ${raport[3]}`);
+            console.log(`✅ [GOOGLE SHEETS] Raport przeniesiony do historii: Pracownik ${raport[1]}, data ${raport[3]}`);
             return true;
         } catch (error) {
             console.error('❌ Błąd podczas przenoszenia do historii:', error);
