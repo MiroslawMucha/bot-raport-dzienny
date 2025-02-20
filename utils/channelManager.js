@@ -91,4 +91,4 @@ class ChannelManager {
 }
 
 // Eksportujemy instancję klasy zamiast samej klasy
-module.exports = new ChannelManager(); 
+module.exports = new ChannelManager();  
