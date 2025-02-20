@@ -264,7 +264,10 @@ client.on('interactionCreate', async interaction => {
                     
                     if (timeData.startHour && timeData.startMinute) {
                         timeData.czasRozpoczecia = `${timeData.selectedDate} ${timeData.startHour}:${timeData.startMinute}`;
-                        console.log(`📝 [RAPORT] ${userData.username} aktualizuje: czas rozpoczęcia: ${timeData.startHour}:${timeData.startMinute}`);
+                        // Logujemy tylko jeśli czas się zmienił
+                        if (timeData.czasRozpoczecia !== userData.czasRozpoczecia) {
+                            console.log(`📝 [RAPORT] ${userData.username} aktualizuje: czas rozpoczęcia: ${timeData.startHour}:${timeData.startMinute}`);
+                        }
                     }
                     if (timeData.endHour && timeData.endMinute) {
                         timeData.czasZakonczenia = `${timeData.selectedDate} ${timeData.endHour}:${timeData.endMinute}`;
@@ -353,6 +356,9 @@ Czy chcesz wysłać raport?`,
             else if (customId === 'wyslij_raport' || customId === 'podmien_raport' || customId === 'anuluj_raport') {
                 if (customId === 'wyslij_raport') {
                     const currentData = raportStore.getReport(interaction.user.id);
+                    const timeSpent = Math.round((Date.now() - currentData.startTime) / 1000);
+                    console.log(`⏱️ [RAPORT] Czas wypełniania: ${timeSpent}s`);
+                    
                     currentData.pracownik = currentData.username;
                     
                     try {
@@ -366,6 +372,19 @@ Czy chcesz wysłać raport?`,
                         stats.reportsCreated++;
                         raportStore.deleteReport(interaction.user.id);
                         
+                        // Podsumowanie wysłanego raportu
+                        console.log(`
+✨ [RAPORT] Wysłano raport:
+├─ Autor:     ${currentData.username}
+├─ Data:      ${currentData.selectedDate}
+├─ Godziny:   ${currentData.czasRozpoczecia.split(' ')[1]} - ${currentData.czasZakonczenia.split(' ')[1]}
+├─ Miejsce:   ${currentData.miejscePracy}
+├─ Auto:      ${currentData.auto}
+├─ Kierowca:  ${currentData.kierowca}
+├─ Osoby:     ${currentData.osobyPracujace.join(', ')}
+└─ Dieta:     ${currentData.dieta ? 'Tak' : 'Nie'}
+`);
+
                         // Teraz możemy użyć followUp
                         await interaction.followUp({
                             content: 'Raport został pomyślnie wysłany!',
@@ -380,6 +399,9 @@ Czy chcesz wysłać raport?`,
                     }
                 } else if (customId === 'podmien_raport') {
                     const currentData = raportStore.getReport(interaction.user.id);
+                    const timeSpent = Math.round((Date.now() - currentData.startTime) / 1000);
+                    console.log(`⏱️ [RAPORT] Czas wypełniania: ${timeSpent}s`);
+                    
                     currentData.pracownik = currentData.username;
                     
                     try {
@@ -417,6 +439,7 @@ Czy chcesz wysłać raport?`,
                 } else {
                     // Anuluj raport
                     raportStore.deleteReport(interaction.user.id);
+                    console.log(`❌ [RAPORT] ${interaction.user.username} anulował raport`);
                     
                     await interaction.update({
                         content: 'Raport anulowany. Użyj komendy /raport aby rozpocząć od nowa.',
