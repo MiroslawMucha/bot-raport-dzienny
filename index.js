@@ -3,6 +3,7 @@ const { Client, GatewayIntentBits, Collection, InteractionType, ModalBuilder, Te
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
+const { MAX_CONCURRENT_FORMS } = require('./utils/raportDataStore');
 
 const VERSION = '1.0.0';
 
@@ -32,6 +33,10 @@ function logConfigStatus() {
 └─ Google Sheets     ${configStatus.googleCreds}
 `);
 }
+
+// Wywołanie bannera startowego na początku
+drawStartupBanner();
+logConfigStatus();
 
 // Inicjalizacja klienta Discord z odpowiednimi uprawnieniami
 const client = new Client({
@@ -75,6 +80,15 @@ client.once('ready', () => {
 ├─ Serwery:  ${client.guilds.cache.size}
 └─ Status:   Online
 `);
+
+    // Pokaż początkowe statystyki
+    console.log(`
+📊 Statystyki początkowe:
+├─ Uptime:             0d 0h 0m
+├─ Użyto komend:       0
+├─ Utworzono raportów: 0
+└─ Aktywne formularze: 0/${MAX_CONCURRENT_FORMS}
+`);
 });
 
 // Dodajemy okresowe czyszczenie nieaktywnych formularzy
@@ -114,6 +128,7 @@ client.on('interactionCreate', async interaction => {
     try {
         if (interaction.isChatInputCommand()) {
             console.log(`👤 [BOT] ${interaction.user.username} użył /${interaction.commandName}`);
+            stats.commandsUsed++;
             const command = client.commands.get(interaction.commandName);
             if (!command) return;
             await command.execute(interaction);
@@ -348,6 +363,7 @@ Czy chcesz wysłać raport?`,
                         });
 
                         await wyslijRaport(interaction, currentData);
+                        stats.reportsCreated++;
                         raportStore.deleteReport(interaction.user.id);
                         
                         // Teraz możemy użyć followUp
@@ -435,4 +451,18 @@ process.on('unhandledRejection', (error) => {
 console.log('🔑 Logowanie do Discord...');
 client.login(process.env.TOKEN).catch(error => {
     console.error('❌ Błąd logowania:', error.message);
+});
+
+// Obsługa graceful shutdown
+process.on('SIGINT', () => {
+    console.log(`
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🛑 Bot kończy pracę...
+├─ Uptime:             ${getUptime()}
+├─ Użyto komend:       ${stats.commandsUsed}
+├─ Utworzono raportów: ${stats.reportsCreated}
+└─ Aktywne formularze: ${raportStore.size}/${MAX_CONCURRENT_FORMS}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`);
+    process.exit(0);
 }); 
