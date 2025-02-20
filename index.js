@@ -3,16 +3,35 @@ const { Client, GatewayIntentBits, Collection, InteractionType, ModalBuilder, Te
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
-console.log('🔧 [CONFIG] Zmienne środowiskowe:', {
-    TOKEN: !!process.env.TOKEN,
-    PRIVATE_CATEGORY_ID: process.env.PRIVATE_CATEGORY_ID,
-    KANAL_RAPORTY_ID: process.env.KANAL_RAPORTY_ID
-});
-console.log('Env variables loaded:', {
-    tokenExists: !!process.env.TOKEN,
-    tokenLength: process.env.TOKEN?.length,
-    envPath: require('dotenv').config().parsed ? 'loaded' : 'not loaded'
-});
+
+const VERSION = '1.0.0';
+
+// Funkcja do rysowania bannera startowego
+function drawStartupBanner() {
+    console.log(`
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 Bot Raport Dzienny v${VERSION}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`);
+}
+
+// Funkcja do wyświetlania statusu konfiguracji
+function logConfigStatus() {
+    const configStatus = {
+        token: !!process.env.TOKEN ? '✅' : '❌',
+        categoryId: !!process.env.PRIVATE_CATEGORY_ID ? '✅' : '❌',
+        channelId: !!process.env.KANAL_RAPORTY_ID ? '✅' : '❌',
+        googleCreds: !!process.env.GOOGLE_SHEET_ID ? '✅' : '❌'
+    };
+
+    console.log(`
+🔧 Konfiguracja:
+├─ Token Discord     ${configStatus.token}
+├─ ID Kategorii      ${configStatus.categoryId} ${process.env.PRIVATE_CATEGORY_ID || ''}
+├─ ID Kanału         ${configStatus.channelId} ${process.env.KANAL_RAPORTY_ID || ''}
+└─ Google Sheets     ${configStatus.googleCreds}
+`);
+}
 
 // Inicjalizacja klienta Discord z odpowiednimi uprawnieniami
 const client = new Client({
@@ -28,6 +47,7 @@ client.commands = new Collection();
 
 // Ładowanie komend z folderu commands
 const commandsPath = path.join(__dirname, 'commands');
+console.log('\n📚 Ładowanie komend:');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
 
 // Dodaj import store'a
@@ -42,18 +62,52 @@ for (const file of commandFiles) {
     const filePath = path.join(commandsPath, file);
     const command = require(filePath);
     client.commands.set(command.data.name, command);
-    console.log('Załadowano komendę:', command.data.name);
+    console.log(`├─ ${command.data.name} ✅`);
 }
+console.log('└─ Załadowano wszystkie komendy\n');
 
 // Obsługa eventu ready
 client.once('ready', () => {
-    console.log(`Zalogowano jako ${client.user.tag}`);
+    console.log(`
+🤖 Bot gotowy do pracy:
+├─ Nazwa:    ${client.user.tag}
+├─ ID:       ${client.user.id}
+├─ Serwery:  ${client.guilds.cache.size}
+└─ Status:   Online
+`);
 });
 
 // Dodajemy okresowe czyszczenie nieaktywnych formularzy
 setInterval(() => {
     raportStore.cleanupStaleReports();
 }, 5 * 60 * 1000); // Co 5 minut
+
+// Statystyki
+const stats = {
+    commandsUsed: 0,
+    reportsCreated: 0,
+    startTime: Date.now()
+};
+
+// Funkcja do formatowania uptime
+function getUptime() {
+    const uptime = Date.now() - stats.startTime;
+    const days = Math.floor(uptime / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((uptime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((uptime % (1000 * 60 * 60)) / (1000 * 60));
+    return `${days}d ${hours}h ${minutes}m`;
+}
+
+// Wyświetlanie statystyk co godzinę
+setInterval(() => {
+    console.log(`
+📊 Statystyki:
+├─ Uptime:           ${getUptime()}
+├─ Użyto komend:     ${stats.commandsUsed}
+├─ Utworzono raportów: ${stats.reportsCreated}
+└─ Aktywne formularze: ${raportStore.size}/${MAX_CONCURRENT_FORMS}
+`);
+}, 60 * 60 * 1000);
 
 // Obsługa interakcji (komendy slash)
 client.on('interactionCreate', async interaction => {
@@ -378,7 +432,7 @@ process.on('unhandledRejection', (error) => {
 });
 
 // Logowanie bota
-console.log('Attempting to login with token...');
+console.log('🔑 Logowanie do Discord...');
 client.login(process.env.TOKEN).catch(error => {
-    console.error('Login error:', error);
+    console.error('❌ Błąd logowania:', error.message);
 }); 
