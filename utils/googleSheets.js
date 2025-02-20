@@ -72,8 +72,6 @@ class GoogleSheetsService {
     async generujNoweId(username) {
         try {
             const now = new Date();
-            
-            // Format: YYYY-MM-DD--HH:MM:SS--username
             const dateStr = now.toLocaleString('pl-PL', {
                 year: 'numeric',
                 month: '2-digit',
@@ -82,12 +80,7 @@ class GoogleSheetsService {
                 minute: '2-digit',
                 second: '2-digit',
                 hour12: false
-            }).replace(/[\s,]/g, '-');  // Zamieniamy spacje i przecinki na --
-
-            console.log('🕒 Generowanie ID raportu:', {
-                czas: dateStr,
-                strefa: Intl.DateTimeFormat().resolvedOptions().timeZone
-            });
+            }).replace(/[\s,]/g, '-');
 
             return `${dateStr}-${username}`;
         } catch (error) {

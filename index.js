@@ -188,8 +188,10 @@ client.on('interactionCreate', async interaction => {
 
                 // Jeśli mamy wszystkie potrzebne dane, sformatuj czas
                 if (timeData.selectedDate) {
-                    // Najpierw logujemy wybraną datę
-                    console.log(`📝 [RAPORT] ${userData.username} aktualizuje: data: ${timeData.selectedDate}`);
+                    // Logujemy datę tylko jeśli się zmieniła
+                    if (timeData.selectedDate !== userData.selectedDate) {
+                        console.log(`📝 [RAPORT] ${userData.username} aktualizuje: data: ${timeData.selectedDate}`);
+                    }
                     
                     if (timeData.startHour && timeData.startMinute) {
                         timeData.czasRozpoczecia = `${timeData.selectedDate} ${timeData.startHour}:${timeData.startMinute}`;

@@ -71,12 +71,14 @@ const store = {
                     // Ignorujemy pola techniczne i puste wartości
                     const technicznePola = [
                         'userId', 'username', 'displayName', 'globalName', 'fullName', 'startTime',
-                        'selectedDate', 'startHour', 'startMinute', 'endHour', 'endMinute'
+                        'selectedDate', 'startHour', 'startMinute', 'endHour', 'endMinute',
+                        'czasRozpoczecia', 'czasZakonczenia'
                     ];
                     return !technicznePola.includes(key) && 
                            value !== '' && 
                            value !== false && 
-                           (!Array.isArray(value) || value.length > 0);
+                           (!Array.isArray(value) || value.length > 0) &&
+                           currentReport[key] !== value;
                 })
                 .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`);
             
