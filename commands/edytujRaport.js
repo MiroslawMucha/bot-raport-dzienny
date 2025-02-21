@@ -1,5 +1,6 @@
 // Komenda /edytuj_raport do edycji istniejących raportów
 const { SlashCommandBuilder } = require('@discordjs/builders');
+const { MessageFlags } = require('discord.js');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -36,7 +37,7 @@ Aby edytować raport, wykonaj następujące kroki:
 
         await interaction.reply({
             content: instructionMessage,
-            ephemeral: true
+            flags: [MessageFlags.Ephemeral]
         });
     }
 }; 

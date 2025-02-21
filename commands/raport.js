@@ -1,6 +1,6 @@
 // Komenda /raport do tworzenia nowych raportów
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, TextInputBuilder, TextInputStyle } = require('discord.js');
+const { ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, TextInputBuilder, TextInputStyle, MessageFlags } = require('discord.js');
 const { MIEJSCA_PRACY, POJAZDY, CZAS } = require('../config/config');
 const googleSheets = require('../utils/googleSheets');
 const channelManager = require('../utils/channelManager');
@@ -28,7 +28,7 @@ module.exports = {
                 if (error.message.includes('Zbyt wiele aktywnych formularzy')) {
                     await interaction.reply({
                         content: error.message,
-                        ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                     });
                     return;
                 }
@@ -140,7 +140,7 @@ module.exports = {
                     new ActionRowBuilder().addComponents(kierowcaSelect),
                     dietaButtons
                 ],
-                flags: ['Ephemeral']
+                flags: [MessageFlags.Ephemeral]
             });
 
             // Wysyłamy dodatkową wiadomość z wyborem czasu
@@ -153,7 +153,7 @@ module.exports = {
                     new ActionRowBuilder().addComponents(endHourSelect),
                     new ActionRowBuilder().addComponents(endMinuteSelect)
                 ],
-                ephemeral: true
+                flags: [MessageFlags.Ephemeral]
             });
 
             logger.logRaportAction('start', { username: interaction.user.username });
@@ -162,7 +162,7 @@ module.exports = {
             raportStore.resetReport(interaction.user.id);
             await interaction.reply({
                 content: 'Wystąpił błąd. Spróbuj ponownie za chwilę.',
-                ephemeral: true
+                flags: [MessageFlags.Ephemeral]
             });
         }
     },
@@ -200,7 +200,7 @@ async function wyslijRaport(interaction, raportData, isEdit = false, originalRap
         if (!timeValidation.valid) {
             await interaction.followUp({
                 content: timeValidation.message,
-                ephemeral: true
+                flags: [MessageFlags.Ephemeral]
             });
             return;
         }
@@ -225,13 +225,13 @@ async function wyslijRaport(interaction, raportData, isEdit = false, originalRap
 
             await interaction.followUp({
                 content: 'Raport został pomyślnie zapisany i wysłany na odpowiednie kanały!',
-                ephemeral: true
+                flags: [MessageFlags.Ephemeral]
             });
             console.log(`✅ [DISCORD] Wysłano potwierdzenie do użytkownika ${interaction.user.username}`);
         } else {
             await interaction.followUp({
                 content: 'Wystąpił błąd podczas zapisywania raportu!',
-                ephemeral: true
+                flags: [MessageFlags.Ephemeral]
             });
             console.log(`❌ [DISCORD] Błąd zapisu - wysłano informację do ${interaction.user.username}`);
         }
@@ -249,7 +249,7 @@ async function wyslijRaport(interaction, raportData, isEdit = false, originalRap
         console.error(`❌ [DISCORD] Błąd wysyłania: ${error.message}`);
         await interaction.followUp({
             content: 'Wystąpił nieoczekiwany błąd. Spróbuj ponownie później.',
-            ephemeral: true
+            flags: [MessageFlags.Ephemeral]
         });
     }
 }

@@ -1,5 +1,5 @@
 // Główny plik aplikacji
-const { Client, GatewayIntentBits, Collection, InteractionType, ModalBuilder, TextInputBuilder, ActionRowBuilder, TextInputStyle, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, InteractionType, ModalBuilder, TextInputBuilder, ActionRowBuilder, TextInputStyle, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
@@ -119,7 +119,7 @@ client.on('interactionCreate', async interaction => {
                 await interaction.update({
                     content: 'Formularz został zresetowany. Możesz teraz użyć komendy /raport aby rozpocząć od nowa.',
                     components: [],
-                    ephemeral: true
+                    flags: [MessageFlags.Ephemeral]
                 });
                 return;
             }
@@ -129,7 +129,7 @@ client.on('interactionCreate', async interaction => {
             if (!userData) {
                 await interaction.reply({
                     content: 'Sesja wygasła. Użyj komendy /raport ponownie.',
-                    ephemeral: true
+                    flags: [MessageFlags.Ephemeral]
                 });
                 return;
             }
@@ -168,7 +168,8 @@ client.on('interactionCreate', async interaction => {
                             component.data.placeholder = `✅ Wybrano: ${interaction.values[0]}`;
                         }
                         return row;
-                    })
+                    }),
+                    flags: [MessageFlags.Ephemeral]
                 });
             }
             // Obsługa wyboru diety
@@ -200,7 +201,8 @@ client.on('interactionCreate', async interaction => {
                                 );
                         }
                         return row;
-                    })
+                    }),
+                    flags: [MessageFlags.Ephemeral]
                 });
             }
             // Obsługa wyboru daty i czasu
@@ -262,7 +264,8 @@ client.on('interactionCreate', async interaction => {
                     if (!timeValidation.valid) {
                         await interaction.update({
                             content: timeValidation.message,
-                            components: interaction.message.components
+                            components: interaction.message.components,
+                            flags: [MessageFlags.Ephemeral]
                         });
                         return;
                     }
@@ -327,7 +330,8 @@ client.on('interactionCreate', async interaction => {
 🧑‍✈️ Kierowca: ${updatedData.kierowca}
 
 Czy chcesz wysłać raport?`,
-                        components: [confirmationButtons]
+                        components: [confirmationButtons],
+                        flags: [MessageFlags.Ephemeral]
                     });
                 } else {
                     // Pokaż tylko aktualizację czasu
@@ -342,7 +346,8 @@ Czy chcesz wysłać raport?`,
                                 component.data.placeholder = `✅ Wybrano: ${interaction.values[0]}`;
                             }
                             return row;
-                        })
+                        }),
+                        flags: [MessageFlags.Ephemeral]
                     });
                 }
             }
@@ -360,7 +365,8 @@ Czy chcesz wysłać raport?`,
                         // Najpierw odpowiedz na interakcję
                         await interaction.update({
                             content: 'Wysyłanie raportu...',
-                            components: [] // Usuń przyciski
+                            components: [], // Usuń przyciski
+                            flags: [MessageFlags.Ephemeral]
                         });
 
                         await wyslijRaport(interaction, currentData);
@@ -383,13 +389,13 @@ Czy chcesz wysłać raport?`,
                         // Teraz możemy użyć followUp
                         await interaction.followUp({
                             content: 'Raport został pomyślnie wysłany!',
-                            ephemeral: true
+                            flags: [MessageFlags.Ephemeral]
                         });
                     } catch (error) {
                         console.error('Błąd podczas wysyłania raportu:', error);
                         await interaction.followUp({
                             content: 'Wystąpił błąd podczas wysyłania raportu.',
-                            ephemeral: true
+                            flags: [MessageFlags.Ephemeral]
                         });
                     }
                 } else if (customId === 'podmien_raport') {
@@ -402,7 +408,8 @@ Czy chcesz wysłać raport?`,
                     try {
                         await interaction.update({
                             content: 'Aktualizowanie raportu...',
-                            components: []
+                            components: [],
+                            flags: [MessageFlags.Ephemeral]
                         });
 
                         // Znajdź istniejący raport
@@ -434,14 +441,14 @@ Czy chcesz wysłać raport?`,
 
                             await interaction.followUp({
                                 content: 'Raport został pomyślnie zaktualizowany!',
-                                ephemeral: true
+                                flags: [MessageFlags.Ephemeral]
                             });
                         }
                     } catch (error) {
                         console.error(`❌ [INDEX] Błąd aktualizacji raportu: ${error.message}`);
                         await interaction.followUp({
                             content: 'Wystąpił błąd podczas aktualizacji raportu.',
-                            ephemeral: true
+                            flags: [MessageFlags.Ephemeral]
                         });
                     }
                 } else {
@@ -451,7 +458,8 @@ Czy chcesz wysłać raport?`,
                     
                     await interaction.update({
                         content: 'Raport anulowany. Użyj komendy /raport aby rozpocząć od nowa.',
-                        components: [] // Usuń przyciski
+                        components: [], // Usuń przyciski
+                        flags: [MessageFlags.Ephemeral]
                     });
                 }
             }
@@ -460,7 +468,7 @@ Czy chcesz wysłać raport?`,
         console.error(`❌ [BOT] Błąd: ${error.message}`);
         await interaction.reply({
             content: 'Wystąpił błąd podczas wykonywania tej komendy!',
-            ephemeral: true
+            flags: [MessageFlags.Ephemeral]
         });
     }
 });
