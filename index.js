@@ -426,9 +426,10 @@ Czy chcesz wysłać raport?`,
                             const buttons = istniejaceRaporty.map((raport, index) => {
                                 const czasStart = raport[3].split(' ')[1];
                                 const czasKoniec = raport[4].split(' ')[1];
+                                const miejscePracy = raport[2];
                                 return new ButtonBuilder()
                                     .setCustomId(`wybierz_raport_${index}`)
-                                    .setLabel(`Raport ${index + 1}: ${czasStart} - ${czasKoniec}`)
+                                    .setLabel(`${index + 1}. ${miejscePracy} (${czasStart}-${czasKoniec})`)
                                     .setStyle(ButtonStyle.Primary);
                             });
 
@@ -436,7 +437,7 @@ Czy chcesz wysłać raport?`,
                             buttons.push(
                                 new ButtonBuilder()
                                     .setCustomId('anuluj_wybor_raportu')
-                                    .setLabel('❌ Anuluj')
+                                    .setLabel('0. ❌ Anuluj wybór')
                                     .setStyle(ButtonStyle.Danger)
                             );
 
@@ -459,13 +460,12 @@ ${istniejaceRaporty.map((raport, index) => {
     const czasStart = raport[3].split(' ')[1];
     const czasKoniec = raport[4].split(' ')[1];
     const miejscePracy = raport[2];
-    return `**Raport ${index + 1}:**
-⏰ Godziny: ${czasStart} - ${czasKoniec}
-📍 Miejsce: ${miejscePracy}
-`;
-}).join('\n')}
+    return `**${index + 1}. ${miejscePracy}**
+⏰ ${czasStart}-${czasKoniec}`;
+}).join('\n\n')}
 
-⚠️ Wybrany raport zostanie przeniesiony do historii i zastąpiony nowym.`,
+⚠️ Wybrany raport zostanie przeniesiony do historii i zastąpiony nowym.
+❌ Wybierz "0. Anuluj wybór" aby przerwać edycję.`,
                                 components: rows,
                                 flags: [MessageFlags.Ephemeral]
                             });
