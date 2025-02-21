@@ -5,6 +5,7 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 const { MAX_CONCURRENT_FORMS } = require('./utils/raportDataStore');
 const logger = require('./utils/logger');
+const { validateTime } = require('./utils/timeValidation');
 
 const VERSION = '1.0.0';
 
@@ -246,6 +247,24 @@ client.on('interactionCreate', async interaction => {
                     if (timeData.endHour && timeData.endMinute) {
                         timeData.czasZakonczenia = `${timeData.selectedDate} ${timeData.endHour}:${timeData.endMinute}`;
                         console.log(`📝 [RAPORT] ${userData.username} aktualizuje: czas zakończenia: ${timeData.endHour}:${timeData.endMinute}`);
+                    }
+                }
+
+                // Dodać walidację gdy mamy kompletne czasy
+                if (timeData.startHour && timeData.startMinute && 
+                    timeData.endHour && timeData.endMinute) {
+                    
+                    const timeValidation = validateTime(
+                        `${timeData.startHour}:${timeData.startMinute}`,
+                        `${timeData.endHour}:${timeData.endMinute}`
+                    );
+
+                    if (!timeValidation.valid) {
+                        await interaction.update({
+                            content: timeValidation.message,
+                            components: interaction.message.components
+                        });
+                        return;
                     }
                 }
 

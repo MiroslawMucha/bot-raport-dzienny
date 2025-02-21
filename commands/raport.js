@@ -6,6 +6,7 @@ const googleSheets = require('../utils/googleSheets');
 const channelManager = require('../utils/channelManager');
 const raportStore = require('../utils/raportDataStore');
 const logger = require('../utils/logger');
+const { validateTime } = require('../utils/timeValidation');
 
 module.exports = {
     // Definicja komendy
@@ -190,6 +191,20 @@ async function pobierzCzlonkowSerwera(guild) {
 // Funkcja wysyłająca raport
 async function wyslijRaport(interaction, raportData, isEdit = false, originalRaport = null) {
     try {
+        // Dodać walidację czasu
+        const timeValidation = validateTime(
+            raportData.czasRozpoczecia.split(' ')[1], 
+            raportData.czasZakonczenia.split(' ')[1]
+        );
+
+        if (!timeValidation.valid) {
+            await interaction.followUp({
+                content: timeValidation.message,
+                ephemeral: true
+            });
+            return;
+        }
+
         const startTime = Date.now();
         const dataToSend = {
             ...raportData,
