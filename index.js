@@ -406,19 +406,19 @@ Czy chcesz wysłać raport?`,
                     currentData.pracownik = currentData.username;
                     
                     try {
-                        await interaction.update({
-                            content: 'Aktualizowanie raportu...',
-                            components: [],
-                            flags: [MessageFlags.Ephemeral]
-                        });
-
-                        // Znajdź istniejące raporty
+                        // Znajdź istniejące raporty przed aktualizacją interfejsu
                         const istniejaceRaporty = await googleSheets.znajdzRaportyUzytkownika(
                             currentData.username.toLowerCase().replace(/ /g, '_'),
                             currentData.selectedDate
                         );
 
                         if (istniejaceRaporty.length > 1) {
+                            console.log(`
+📝 [RAPORT] Znaleziono wiele raportów:
+├─ Użytkownik: ${currentData.username}
+├─ Data: ${currentData.selectedDate}
+└─ Liczba: ${istniejaceRaporty.length} raportów`);
+                            
                             // Tworzymy przyciski wyboru dla każdego raportu
                             const buttons = istniejaceRaporty.map((raport, index) => {
                                 const czasStart = raport[3].split(' ')[1];
@@ -445,7 +445,8 @@ Czy chcesz wysłać raport?`,
                                 );
                             }
 
-                            await interaction.update({
+                            // Używamy followUp zamiast update
+                            await interaction.followUp({
                                 content: `
 📝 **Znaleziono ${istniejaceRaporty.length} raporty z dnia ${currentData.selectedDate}**
 
@@ -463,6 +464,13 @@ ${istniejaceRaporty.map((raport, index) => {
 
 ⚠️ Wybrany raport zostanie przeniesiony do historii i zastąpiony nowym.`,
                                 components: rows,
+                                flags: [MessageFlags.Ephemeral]
+                            });
+
+                            // Ukrywamy poprzedni interfejs
+                            await interaction.update({
+                                content: 'Wybierz raport do aktualizacji z listy powyżej...',
+                                components: [],
                                 flags: [MessageFlags.Ephemeral]
                             });
                         } else if (istniejaceRaporty.length === 1) {
@@ -483,14 +491,16 @@ ${istniejaceRaporty.map((raport, index) => {
 ├─ Osoby:     ${currentData.osobyPracujace.join(', ')}
 └─ Dieta:     ${currentData.dieta ? 'Tak' : 'Nie'}
 `);
-
+                            
                             await interaction.followUp({
                                 content: 'Raport został pomyślnie zaktualizowany!',
                                 flags: [MessageFlags.Ephemeral]
                             });
                         } else {
-                            await interaction.followUp({
+                            console.log(`❌ [RAPORT] Nie znaleziono raportu do aktualizacji dla ${currentData.username}`);
+                            await interaction.update({
                                 content: 'Nie znaleziono raportu do aktualizacji.',
+                                components: [],
                                 flags: [MessageFlags.Ephemeral]
                             });
                         }
