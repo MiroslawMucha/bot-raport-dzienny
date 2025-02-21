@@ -222,17 +222,10 @@ class GoogleSheetsService {
         }
     }
 
-    async znajdzRaportUzytkownika(username, dataRaportu) {
+    async znajdzRaportyUzytkownika(username, dataRaportu) {
         if (!this.sheetsApi) await this.init();
         
         try {
-            if (this.debugSearch) {
-                console.log('🔍 [GOOGLE SHEETS] Szukam raportu:', {
-                    username,
-                    dataRaportu,
-                });
-            }
-
             const response = await this.sheetsApi.spreadsheets.values.get({
                 spreadsheetId: process.env.GOOGLE_SHEET_ID,
                 range: 'Arkusz1!A:J'
@@ -240,48 +233,21 @@ class GoogleSheetsService {
 
             const rows = response.data.values || [];
             
-            if (this.debugSearch) {
-                rows.forEach((row, index) => {
-                    if (!row[0]) return;
-                    const raportId = row[0];
-                    const pracownik = row[1];
-                    const dataZRaportu = row[3].split(' ')[0];
-                    const usernameZId = raportId.split('-').pop();
-                    console.debug(`🔍 [GOOGLE SHEETS] Wiersz ${index}:`, {
-                        raportId, pracownik, dataZRaportu, usernameZId
-                    });
-                });
-            }
-
-            const znalezionyRaport = rows.find((row) => {
+            // Znajdź wszystkie raporty użytkownika z danego dnia
+            const znalezioneRaporty = rows.filter((row) => {
                 if (!row[0] || !row[3]) return false;
                 
                 const usernameZId = row[0].split('-').pop();
                 const dataZRaportu = row[3].split(' ')[0];
                 
-                const czyPasuje = usernameZId === username.toLowerCase().replace(/ /g, '_') && 
-                                dataZRaportu === dataRaportu;
-                
-                if (this.debugSearch && czyPasuje) {
-                    console.debug('✓ [GOOGLE SHEETS] Znaleziono dopasowanie:', {
-                        dataZRaportu,
-                        szukanaData: dataRaportu,
-                        usernameZId,
-                        szukanyUsername: username.toLowerCase().replace(/ /g, '_')
-                    });
-                }
-                
-                return czyPasuje;
+                return usernameZId === username.toLowerCase().replace(/ /g, '_') && 
+                       dataZRaportu === dataRaportu;
             });
 
-            if (this.debugSearch) {
-                console.debug(`${znalezionyRaport ? '✅' : '❌'} [GOOGLE SHEETS] Wynik wyszukiwania: ${znalezionyRaport ? 'Znaleziono' : 'Nie znaleziono'}`);
-            }
-            
-            return znalezionyRaport;
+            return znalezioneRaporty;
         } catch (error) {
-            console.error('❌ Błąd podczas szukania raportu:', error);
-            return null;
+            console.error('❌ Błąd podczas szukania raportów:', error);
+            return [];
         }
     }
 

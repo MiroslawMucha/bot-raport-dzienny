@@ -412,18 +412,63 @@ Czy chcesz wysłać raport?`,
                             flags: [MessageFlags.Ephemeral]
                         });
 
-                        // Znajdź istniejący raport
-                        const istniejacyRaport = await googleSheets.znajdzRaportUzytkownika(
+                        // Znajdź istniejące raporty
+                        const istniejaceRaporty = await googleSheets.znajdzRaportyUzytkownika(
                             currentData.username.toLowerCase().replace(/ /g, '_'),
                             currentData.selectedDate
                         );
 
-                        if (istniejacyRaport) {
-                            // Przenieś stary raport do historii
-                            await googleSheets.przeniesDoHistorii(istniejacyRaport);
-                            
-                            // Wyślij nowy raport z flagą edycji i oryginalnym raportem
-                            await wyslijRaport(interaction, currentData, true, istniejacyRaport);
+                        if (istniejaceRaporty.length > 1) {
+                            // Tworzymy przyciski wyboru dla każdego raportu
+                            const buttons = istniejaceRaporty.map((raport, index) => {
+                                const czasStart = raport[3].split(' ')[1];
+                                const czasKoniec = raport[4].split(' ')[1];
+                                return new ButtonBuilder()
+                                    .setCustomId(`wybierz_raport_${index}`)
+                                    .setLabel(`Raport ${index + 1}: ${czasStart} - ${czasKoniec}`)
+                                    .setStyle(ButtonStyle.Primary);
+                            });
+
+                            // Dodajemy przycisk anulowania
+                            buttons.push(
+                                new ButtonBuilder()
+                                    .setCustomId('anuluj_wybor_raportu')
+                                    .setLabel('❌ Anuluj')
+                                    .setStyle(ButtonStyle.Danger)
+                            );
+
+                            // Dzielimy przyciski na rzędy (max 5 przycisków na rząd)
+                            const rows = [];
+                            for (let i = 0; i < buttons.length; i += 5) {
+                                rows.push(
+                                    new ActionRowBuilder().addComponents(buttons.slice(i, i + 5))
+                                );
+                            }
+
+                            await interaction.update({
+                                content: `
+📝 **Znaleziono ${istniejaceRaporty.length} raporty z dnia ${currentData.selectedDate}**
+
+Wybierz, który raport chcesz zaktualizować:
+
+${istniejaceRaporty.map((raport, index) => {
+    const czasStart = raport[3].split(' ')[1];
+    const czasKoniec = raport[4].split(' ')[1];
+    const miejscePracy = raport[2];
+    return `**Raport ${index + 1}:**
+⏰ Godziny: ${czasStart} - ${czasKoniec}
+📍 Miejsce: ${miejscePracy}
+`;
+}).join('\n')}
+
+⚠️ Wybrany raport zostanie przeniesiony do historii i zastąpiony nowym.`,
+                                components: rows,
+                                flags: [MessageFlags.Ephemeral]
+                            });
+                        } else if (istniejaceRaporty.length === 1) {
+                            // Istniejąca logika dla pojedynczego raportu
+                            await googleSheets.przeniesDoHistorii(istniejaceRaporty[0]);
+                            await wyslijRaport(interaction, currentData, true, istniejaceRaporty[0]);
                             raportStore.deleteReport(interaction.user.id);
                             
                             // Podsumowanie edytowanego raportu
@@ -441,6 +486,11 @@ Czy chcesz wysłać raport?`,
 
                             await interaction.followUp({
                                 content: 'Raport został pomyślnie zaktualizowany!',
+                                flags: [MessageFlags.Ephemeral]
+                            });
+                        } else {
+                            await interaction.followUp({
+                                content: 'Nie znaleziono raportu do aktualizacji.',
                                 flags: [MessageFlags.Ephemeral]
                             });
                         }
@@ -462,6 +512,45 @@ Czy chcesz wysłać raport?`,
                         flags: [MessageFlags.Ephemeral]
                     });
                 }
+            } else if (customId.startsWith('wybierz_raport_')) {
+                const index = parseInt(customId.split('_').pop());
+                const currentData = raportStore.getReport(interaction.user.id);
+                const istniejaceRaporty = await googleSheets.znajdzRaportyUzytkownika(
+                    currentData.username.toLowerCase().replace(/ /g, '_'),
+                    currentData.selectedDate
+                );
+
+                if (istniejaceRaporty[index]) {
+                    try {
+                        await interaction.update({
+                            content: 'Aktualizowanie wybranego raportu...',
+                            components: [],
+                            flags: [MessageFlags.Ephemeral]
+                        });
+
+                        await googleSheets.przeniesDoHistorii(istniejaceRaporty[index]);
+                        await wyslijRaport(interaction, currentData, true, istniejaceRaporty[index]);
+                        raportStore.deleteReport(interaction.user.id);
+
+                        await interaction.followUp({
+                            content: 'Raport został pomyślnie zaktualizowany!',
+                            flags: [MessageFlags.Ephemeral]
+                        });
+                    } catch (error) {
+                        console.error('❌ Błąd podczas aktualizacji raportu:', error);
+                        await interaction.followUp({
+                            content: 'Wystąpił błąd podczas aktualizacji raportu.',
+                            flags: [MessageFlags.Ephemeral]
+                        });
+                    }
+                }
+            } else if (customId === 'anuluj_wybor_raportu') {
+                raportStore.deleteReport(interaction.user.id);
+                await interaction.update({
+                    content: 'Anulowano wybór raportu. Użyj komendy /raport aby rozpocząć od nowa.',
+                    components: [],
+                    flags: [MessageFlags.Ephemeral]
+                });
             }
         }
     } catch (error) {
