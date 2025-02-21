@@ -399,14 +399,17 @@ Czy chcesz wysłać raport?`,
                         });
                     }
                 } else if (customId === 'podmien_raport') {
-                    const currentData = raportStore.getReport(interaction.user.id);
-                    const timeSpent = Math.round((Date.now() - currentData.startTime) / 1000);
-                    console.log(`⏱️ [RAPORT] Czas wypełniania: ${timeSpent}s`);
-                    
-                    currentData.pracownik = currentData.username;
-                    
                     try {
-                        // Znajdź istniejące raporty przed aktualizacją interfejsu
+                        const currentData = raportStore.getReport(interaction.user.id);
+                        const timeSpent = Math.round((Date.now() - currentData.startTime) / 1000);
+                        console.log(`⏱️ [RAPORT] Czas wypełniania: ${timeSpent}s`);
+                        
+                        currentData.pracownik = currentData.username;
+
+                        // Najpierw odpowiadamy na interakcję, żeby Discord nie zgłaszał błędu
+                        await interaction.deferUpdate();
+                        
+                        // Znajdź istniejące raporty
                         const istniejaceRaporty = await googleSheets.znajdzRaportyUzytkownika(
                             currentData.username.toLowerCase().replace(/ /g, '_'),
                             currentData.selectedDate
@@ -445,8 +448,8 @@ Czy chcesz wysłać raport?`,
                                 );
                             }
 
-                            // Używamy followUp zamiast update
-                            await interaction.followUp({
+                            // Aktualizujemy oryginalną wiadomość
+                            await interaction.editReply({
                                 content: `
 📝 **Znaleziono ${istniejaceRaporty.length} raporty z dnia ${currentData.selectedDate}**
 
@@ -467,12 +470,6 @@ ${istniejaceRaporty.map((raport, index) => {
                                 flags: [MessageFlags.Ephemeral]
                             });
 
-                            // Ukrywamy poprzedni interfejs
-                            await interaction.update({
-                                content: 'Wybierz raport do aktualizacji z listy powyżej...',
-                                components: [],
-                                flags: [MessageFlags.Ephemeral]
-                            });
                         } else if (istniejaceRaporty.length === 1) {
                             // Istniejąca logika dla pojedynczego raportu
                             await googleSheets.przeniesDoHistorii(istniejaceRaporty[0]);
@@ -492,13 +489,14 @@ ${istniejaceRaporty.map((raport, index) => {
 └─ Dieta:     ${currentData.dieta ? 'Tak' : 'Nie'}
 `);
                             
-                            await interaction.followUp({
+                            await interaction.editReply({
                                 content: 'Raport został pomyślnie zaktualizowany!',
+                                components: [],
                                 flags: [MessageFlags.Ephemeral]
                             });
                         } else {
                             console.log(`❌ [RAPORT] Nie znaleziono raportu do aktualizacji dla ${currentData.username}`);
-                            await interaction.update({
+                            await interaction.editReply({
                                 content: 'Nie znaleziono raportu do aktualizacji.',
                                 components: [],
                                 flags: [MessageFlags.Ephemeral]
@@ -506,6 +504,9 @@ ${istniejaceRaporty.map((raport, index) => {
                         }
                     } catch (error) {
                         console.error(`❌ [INDEX] Błąd aktualizacji raportu: ${error.message}`);
+                        if (!interaction.deferred) {
+                            await interaction.deferUpdate();
+                        }
                         await interaction.followUp({
                             content: 'Wystąpił błąd podczas aktualizacji raportu.',
                             flags: [MessageFlags.Ephemeral]
