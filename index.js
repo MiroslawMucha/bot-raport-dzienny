@@ -6,6 +6,7 @@ require('dotenv').config({ path: path.join(__dirname, '.env') });
 const { MAX_CONCURRENT_FORMS } = require('./utils/raportDataStore');
 const logger = require('./utils/logger');
 const { validateTime } = require('./utils/timeValidation');
+const { formatDiscordError } = require('./utils/errorHandler');
 
 const VERSION = '1.0.0';
 
@@ -263,7 +264,11 @@ client.on('interactionCreate', async interaction => {
 
                     if (!timeValidation.valid) {
                         await interaction.update({
-                            content: timeValidation.message,
+                            content: `
+⚠️ **BŁĄD WALIDACJI CZASU!** ⚠️
+━━━━━━━━━━━━━━━━━━━━━━━━━
+❌ ${timeValidation.message}
+━━━━━━━━━━━━━━━━━━━━━━━━━`,
                             components: interaction.message.components,
                             flags: [MessageFlags.Ephemeral]
                         });
@@ -394,7 +399,11 @@ Czy chcesz wysłać raport?`,
                     } catch (error) {
                         console.error('Błąd podczas wysyłania raportu:', error);
                         await interaction.followUp({
-                            content: 'Wystąpił błąd podczas wysyłania raportu.',
+                            content: `
+⚠️ **BŁĄD!** ⚠️
+━━━━━━━━━━━━━━━━━━━━━━━━━
+${formatDiscordError(error)}
+━━━━━━━━━━━━━━━━━━━━━━━━━`,
                             flags: [MessageFlags.Ephemeral]
                         });
                     }
@@ -503,12 +512,12 @@ ${istniejaceRaporty.map((raport, index) => {
                             });
                         }
                     } catch (error) {
-                        console.error(`❌ [INDEX] Błąd aktualizacji raportu: ${error.message}`);
+                        console.error(`❌ [INDEX] ${formatDiscordError(error)}`);
                         if (!interaction.deferred) {
                             await interaction.deferUpdate();
                         }
                         await interaction.followUp({
-                            content: 'Wystąpił błąd podczas aktualizacji raportu.',
+                            content: formatDiscordError(error),
                             flags: [MessageFlags.Ephemeral]
                         });
                     }
@@ -550,7 +559,11 @@ ${istniejaceRaporty.map((raport, index) => {
                     } catch (error) {
                         console.error('❌ Błąd podczas aktualizacji raportu:', error);
                         await interaction.followUp({
-                            content: 'Wystąpił błąd podczas aktualizacji raportu.',
+                            content: `
+⚠️ **BŁĄD!** ⚠️
+━━━━━━━━━━━━━━━━━━━━━━━━━
+${formatDiscordError(error)}
+━━━━━━━━━━━━━━━━━━━━━━━━━`,
                             flags: [MessageFlags.Ephemeral]
                         });
                     }
