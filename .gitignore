@@ -1,0 +1,59 @@
+# Środowisko Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# Zmienne środowiskowe i klucze
+.env
+credentials.json
+config.json
+*.key
+*.pem
+
+# Logi
+logs/
+*.log
+pm2/
+
+# Cache
+.npm
+.eslintcache
+.cache/
+
+# Pliki systemowe
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE i edytory
+.idea/
+.vscode/
+*.swp
+*.swo
+*.swn
+*.bak
+*.sublime*
+
+# Pliki tymczasowe
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Pliki testowe i debugowania
+coverage/
+.nyc_output/
+debug/
+test-results/
+
+# Pliki backupowe
+*.bak
+*.backup
+*~
+
+# Inne
+.directory
+.Trash-*
+.nfs* 
