@@ -1,5 +1,5 @@
 # Dokumentacja i Analiza Funkcji Aplikacji Raportów
-
+   111
 // test git push 
 
 git add . && git commit -m "Aktualizacja kodu" && git push origin X-Bot-Optymalizacja
