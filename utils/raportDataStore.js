@@ -71,17 +71,41 @@ const store = {
     },
 
     // Aktualizacja danych raportu
-    updateReport: (userId, newData) => {
-        const report = raportDataStore.get(userId);
-        if (!report) return null;
+    updateReport: (userId, data) => {
+        const currentReport = raportDataStore.get(userId);
+        if (!currentReport) return null;
 
-        // Jeśli ustawiamy datę, generujemy reportId
-        if (newData.selectedDate) {
-            newData.reportId = `${newData.selectedDate}-${report.username}`;
+        // Filtrujemy tylko istotne pola do logowania
+        const istotneZmiany = Object.entries(data)
+            .filter(([key, value]) => {
+                // Ignorujemy pola techniczne i puste wartości
+                const technicznePola = [
+                    'userId', 'username', 'displayName', 'globalName', 'fullName', 'startTime',
+                    'selectedDate', 'startHour', 'startMinute', 'endHour', 'endMinute',
+                    'czasRozpoczecia', 'czasZakonczenia'
+                ];
+                return !technicznePola.includes(key) && 
+                       value !== '' && 
+                       value !== false && 
+                       (!Array.isArray(value) || value.length > 0) &&
+                       currentReport[key] !== value;
+            })
+            .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`);
+        
+        if (istotneZmiany.length > 0) {
+            const displayName = getDisplayName(currentReport);
+            console.log(`📝 [RAPORT] ${displayName} aktualizuje: ${istotneZmiany.join(', ')}`);
         }
 
-        Object.assign(report, newData);
-        return report;
+        // Jeśli ustawiamy datę, generujemy reportId
+        if (data.selectedDate) {
+            data.reportId = `${data.selectedDate}-${currentReport.username}`;
+        }
+
+        const updatedReport = { ...currentReport, ...data };
+        raportDataStore.set(userId, updatedReport);
+        
+        return raportDataStore.get(userId);
     },
 
     // Usunięcie raportu

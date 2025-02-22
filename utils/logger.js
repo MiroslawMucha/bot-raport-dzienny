@@ -41,7 +41,10 @@ class Logger {
                 console.log(`🔄 [RAPORT] Użytkownik ${data.username} rozpoczął tworzenie raportu`);
                 break;
             case 'update':
-                console.log(`📝 [RAPORT] ${data.username} aktualizuje: ${data.field}: ${data.value}`);
+                console.log(`📝 [RAPORT] ${data.username} aktualizuje: ${data.changes}`);
+                break;
+            case 'complete':
+                console.log(`✅ [RAPORT] ${data.username} zakończył tworzenie raportu`);
                 break;
             case 'summary':
                 console.log(`
@@ -56,6 +59,8 @@ class Logger {
 └─ Dieta:     ${data.diet}
 `);
                 break;
+            default:
+                console.log(`[RAPORT] ${type}: ${JSON.stringify(data)}`);
         }
     }
 
@@ -63,16 +68,19 @@ class Logger {
     logChannelAction(type, data) {
         switch(type) {
             case 'check':
-                console.log(`
-🔍 [CHANNEL] Sprawdzanie kanału:
-├─ Użytkownik: ${data.username}
-├─ Kategoria:  ${data.categoryId}
-└─ Nazwa:      ${data.channelName}
-`);
+                console.log(`🔍 [CHANNEL] Sprawdzam kanał dla ${data.username}`);
+                break;
+            case 'create':
+                console.log(`➕ [CHANNEL] Tworzę kanał dla ${data.username}`);
+                break;
+            case 'error':
+                console.error(`❌ [CHANNEL] Błąd: ${data.message}`);
                 break;
             case 'send':
                 console.log(`📨 [DISCORD] Wysłano raport na kanał #${data.channelName}`);
                 break;
+            default:
+                console.log(`[CHANNEL] ${type}: ${JSON.stringify(data)}`);
         }
     }
 
