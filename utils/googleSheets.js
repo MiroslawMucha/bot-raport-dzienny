@@ -103,13 +103,13 @@ class GoogleSheetsService {
             if (!this.sheetsApi) await this.init();
 
             const displayName = getDisplayName(raportData);
-            const raportId = await this.generujNoweId(displayName);
+            const raportId = await this.generujNoweId(raportData.username.toLowerCase().replace(/ /g, '_'));
             const timestamp = getTimestamp();
             
             // Przygotuj dane do zapisu
             const values = [[
                 raportId,
-                raportData.pracownik,
+                displayName,
                 raportData.miejscePracy,
                 raportData.czasRozpoczecia,
                 raportData.czasZakonczenia,
@@ -117,7 +117,7 @@ class GoogleSheetsService {
                 raportData.osobyPracujace.join(', '),
                 raportData.auto,
                 raportData.kierowca,
-                isEdit ? `Edytowany [${timestamp}]` : 'Aktywny' // Status z timestampem dla edycji
+                isEdit ? `Edytowany [${timestamp}]` : 'Aktywny'
             ]];
 
             // Zapisz do arkusza
@@ -128,7 +128,7 @@ class GoogleSheetsService {
                 resource: { values }
             });
 
-            console.log(`✅ [SHEETS] Zapisano raport: ${raportId}`);
+            console.log(`✅ [SHEETS] Zapisano raport: ${raportId} dla ${displayName}`);
             return true;
         } catch (error) {
             console.error(`❌ [SHEETS] Błąd zapisu: ${error.message}`);
