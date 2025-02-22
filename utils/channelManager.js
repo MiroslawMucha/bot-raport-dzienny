@@ -1,6 +1,7 @@
 // Moduł do zarządzania kanałami Discord
 const { ChannelType, PermissionFlagsBits } = require('discord.js');
 const logger = require('./logger');
+const { getDisplayName } = require('./helpers');
 
 class ChannelManager {
     constructor() {
@@ -14,7 +15,7 @@ class ChannelManager {
             logger.logChannelAction('check', {
                 username: user.username,
                 categoryId: process.env.PRIVATE_CATEGORY_ID,
-                channelName: `raport-${user.username.toLowerCase()}`
+                channelName: `raport-${user.username.toLowerCase().replace(/ /g, '_')}`
             });
 
             // Sprawdzamy rate limit
@@ -31,7 +32,10 @@ class ChannelManager {
             }
 
             // Próba znalezienia istniejącego kanału w kategorii RAPORTY
-            const channelName = `raport-${user.username.toLowerCase()}`;
+            const username = user.username.toLowerCase().replace(/ /g, '_');
+            const displayName = getDisplayName(user);
+            const channelName = `raport-${username}`;
+            const channelTopic = `Kanał raportów użytkownika ${displayName}`;
             let channel = guild.channels.cache.find(ch => 
                 ch.name === channelName && 
                 ch.type === ChannelType.GuildText &&
@@ -69,7 +73,8 @@ class ChannelManager {
                             id: guild.members.me.id, // bot
                             allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory']
                         }
-                    ]
+                    ],
+                    topic: channelTopic
                 });
                 console.log(`Utworzono nowy kanał dla użytkownika ${user.username} w kategorii RAPORTY`);
             }

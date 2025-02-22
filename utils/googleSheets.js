@@ -3,6 +3,7 @@ const { google } = require('googleapis');
 const path = require('path');
 const { GOOGLE_SHEETS } = require('../config/config');
 const { validateTime } = require('./timeValidation');
+const { getDisplayName } = require('./helpers');
 
 // Zmiana nazwy arkusza na prawidłową
 const SHEET_NAME = 'Arkusz1';  // Zmiana z 'Raporty' na 'Arkusz1'
@@ -101,8 +102,8 @@ class GoogleSheetsService {
         try {
             if (!this.sheetsApi) await this.init();
 
-            // Generujemy ID raportu
-            const raportId = await this.generujNoweId(raportData.username);
+            const displayName = getDisplayName(raportData);
+            const raportId = await this.generujNoweId(displayName);
             const timestamp = getTimestamp();
             
             // Przygotuj dane do zapisu
@@ -222,14 +223,14 @@ class GoogleSheetsService {
         }
     }
 
-    async znajdzRaportyUzytkownika(username, dataRaportu) {
+    async znajdzRaportyUzytkownika(username, date) {
         if (!this.sheetsApi) await this.init();
         
         try {
             if (this.debugSearch) {
                 console.log('🔍 [GOOGLE SHEETS] Szukam raportów:', {
                     username,
-                    dataRaportu,
+                    date,
                 });
             }
 
@@ -240,33 +241,21 @@ class GoogleSheetsService {
 
             const rows = response.data.values || [];
             
-            if (this.debugSearch) {
-                rows.forEach((row, index) => {
-                    if (!row[0]) return;
-                    const raportId = row[0];
-                    const pracownik = row[1];
-                    const dataZRaportu = row[3].split(' ')[0];
-                    const usernameZId = raportId.split('-').pop();
-                    console.debug(`🔍 [GOOGLE SHEETS] Wiersz ${index}:`, {
-                        raportId, pracownik, dataZRaportu, usernameZId
-                    });
-                });
-            }
-
             // Znajdź wszystkie raporty użytkownika z danego dnia
             const znalezioneRaporty = rows.filter((row) => {
                 if (!row[0] || !row[3]) return false;
                 
+                // Szukamy po username w ID raportu i dacie z kolumny czasRozpoczecia
                 const usernameZId = row[0].split('-').pop();
-                const dataZRaportu = row[3].split(' ')[0];
+                const dataZRaportu = row[3].split(' ')[0]; // Bierzemy datę z czasRozpoczecia
                 
                 const czyPasuje = usernameZId === username.toLowerCase().replace(/ /g, '_') && 
-                                dataZRaportu === dataRaportu;
+                                dataZRaportu === date;
                 
                 if (this.debugSearch && czyPasuje) {
                     console.debug('✓ [GOOGLE SHEETS] Znaleziono dopasowanie:', {
                         dataZRaportu,
-                        szukanaData: dataRaportu,
+                        szukanaData: date,
                         usernameZId,
                         szukanyUsername: username.toLowerCase().replace(/ /g, '_')
                     });
@@ -287,8 +276,8 @@ class GoogleSheetsService {
     }
 
     // Dodajmy alias dla kompatybilności wstecznej
-    async znajdzRaportUzytkownika(username, dataRaportu) {
-        const raporty = await this.znajdzRaportyUzytkownika(username, dataRaportu);
+    async znajdzRaportUzytkownika(username, date) {
+        const raporty = await this.znajdzRaportyUzytkownika(username, date);
         return raporty[0] || null;
     }
 

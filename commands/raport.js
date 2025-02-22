@@ -7,6 +7,7 @@ const channelManager = require('../utils/channelManager');
 const raportStore = require('../utils/raportDataStore');
 const logger = require('../utils/logger');
 const { validateTime } = require('../utils/timeValidation');
+const { getDisplayName } = require('../utils/helpers');
 
 module.exports = {
     // Definicja komendy
@@ -156,7 +157,8 @@ module.exports = {
                 flags: [MessageFlags.Ephemeral]
             });
 
-            logger.logRaportAction('start', { username: interaction.user.username });
+            const displayName = getDisplayName(interaction.user);
+            console.log(`🔄 [RAPORT] Użytkownik ${displayName} (${getDisplayName(interaction.user)}) rozpoczął tworzenie raportu`);
         } catch (error) {
             console.error('Błąd podczas wykonywania komendy raport:', error);
             raportStore.resetReport(interaction.user.id);
@@ -264,7 +266,7 @@ function formatujRaport(raportData, isEdit = false, originalRaport = null) {
         header = `📌 **RAPORT DZIENNY – ORYGINAŁ**`;
     }
 
-    const displayName = raportData.globalName || raportData.displayName || raportData.username;
+    const displayName = getDisplayName(raportData);
     
     // Dodajemy datę z raportu
     const dataRaportu = raportData.selectedDate || 

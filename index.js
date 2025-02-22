@@ -7,6 +7,7 @@ const { MAX_CONCURRENT_FORMS } = require('./utils/raportDataStore');
 const logger = require('./utils/logger');
 const { validateTime } = require('./utils/timeValidation');
 const { formatDiscordError } = require('./utils/errorHandler');
+const { getDisplayName } = require('./utils/helpers');
 
 const VERSION = '1.0.0';
 
@@ -107,6 +108,7 @@ client.on('interactionCreate', async interaction => {
             stats.commandsUsed++;
             const command = client.commands.get(interaction.commandName);
             if (!command) return;
+            const displayName = getDisplayName(interaction.user);
             await command.execute(interaction);
         } 
         else if (interaction.type === InteractionType.MessageComponent) {
@@ -374,6 +376,7 @@ Czy chcesz wysłać raport?`,
                             flags: [MessageFlags.Ephemeral]
                         });
 
+                        const displayName = getDisplayName(interaction.user);
                         await wyslijRaport(interaction, currentData);
                         stats.reportsCreated++;
                         raportStore.deleteReport(interaction.user.id);

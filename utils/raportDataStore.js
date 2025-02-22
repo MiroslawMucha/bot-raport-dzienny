@@ -22,6 +22,8 @@ let aggregatedCleanup = {
 const store = {
     // Inicjalizacja nowego raportu
     initReport: (userId, userData) => {
+        if (!userId) throw new Error('Brak ID użytkownika');
+        
         if (raportDataStore.size >= MAX_CONCURRENT_FORMS) {
             console.log('⚠️ [RAPORT] Przekroczono limit jednoczesnych formularzy:', {
                 aktualnaLiczba: raportDataStore.size,
@@ -53,7 +55,8 @@ const store = {
             osobyPracujace: [],
             auto: '',
             kierowca: '',
-            startTime: Date.now()
+            startTime: Date.now(),
+            reportId: null // będzie ustawione później po wybraniu daty
         };
         
         raportDataStore.set(userId, newReport);
@@ -68,35 +71,17 @@ const store = {
     },
 
     // Aktualizacja danych raportu
-    updateReport: (userId, data) => {
-        const currentReport = raportDataStore.get(userId);
-        if (currentReport) {
-            // Filtrujemy tylko istotne pola do logowania
-            const istotneZmiany = Object.entries(data)
-                .filter(([key, value]) => {
-                    // Ignorujemy pola techniczne i puste wartości
-                    const technicznePola = [
-                        'userId', 'username', 'displayName', 'globalName', 'fullName', 'startTime',
-                        'selectedDate', 'startHour', 'startMinute', 'endHour', 'endMinute',
-                        'czasRozpoczecia', 'czasZakonczenia'
-                    ];
-                    return !technicznePola.includes(key) && 
-                           value !== '' && 
-                           value !== false && 
-                           (!Array.isArray(value) || value.length > 0) &&
-                           currentReport[key] !== value;
-                })
-                .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`);
-            
-            if (istotneZmiany.length > 0) {
-                console.log(`📝 [RAPORT] ${currentReport.username} aktualizuje: ${istotneZmiany.join(', ')}`);
-            }
+    updateReport: (userId, newData) => {
+        const report = raportDataStore.get(userId);
+        if (!report) return null;
+
+        // Jeśli ustawiamy datę, generujemy reportId
+        if (newData.selectedDate) {
+            newData.reportId = `${newData.selectedDate}-${report.username}`;
         }
 
-        const updatedReport = { ...currentReport, ...data };
-        raportDataStore.set(userId, updatedReport);
-        
-        return raportDataStore.get(userId);
+        Object.assign(report, newData);
+        return report;
     },
 
     // Usunięcie raportu
