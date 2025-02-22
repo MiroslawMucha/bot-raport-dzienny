@@ -1,6 +1,7 @@
 // Store do przechowywania danych raportów
 const raportDataStore = new Map();
 const locks = new Map();
+const { getDisplayName } = require('./helpers');
 
 // Dodajemy stałą dla maksymalnej liczby jednoczesnych formularzy
 const MAX_CONCURRENT_FORMS = 10;
